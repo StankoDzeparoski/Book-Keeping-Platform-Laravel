@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -20,8 +21,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'surname',
+        'dob',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -46,4 +50,37 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the equipment assigned to this user.
+     */
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
+
+    /**
+     * Get the equipment history records for this user.
+     */
+    public function equipmentHistories(): HasMany
+    {
+        return $this->hasMany(EquipmentHistory::class);
+    }
+
+    /**
+     * Check if user is a Manager
+     */
+    public function isManager(): bool
+    {
+        return $this->role === 'Manager';
+    }
+
+    /**
+     * Check if user is an Employee
+     */
+    public function isEmployee(): bool
+    {
+        return $this->role === 'Employee';
+    }
 }
+

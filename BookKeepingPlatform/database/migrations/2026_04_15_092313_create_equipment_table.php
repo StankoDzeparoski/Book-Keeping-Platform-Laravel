@@ -33,12 +33,12 @@ return new class extends Migration
             $table->string('category');
             $table->integer('cost');
             $table->string('condition');
-            $table->string('status');
+            $table->string('status')->nullable(); // Set by observer to AVAILABLE on creation
             $table->date('acquisition_date'); // purchase/buy date
             $table->date('loan_date')->nullable();
             $table->date('loan_expire_date')->nullable();
             $table->string('storage_location');
-            $table->foreignId('employee_id')->nullable()->constrained('employees')->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

@@ -13,13 +13,13 @@ class EquipmentHistory extends Model
 
     protected $fillable = [
         'equipment_id',
-        'employee_ids',
+        'user_ids',
         'loan_date',
         'loan_expire_date',
     ];
 
     protected $casts = [
-        'employee_ids' => 'json',
+        'user_ids' => 'json',
         'loan_date' => 'json',
         'loan_expire_date' => 'json',
     ];

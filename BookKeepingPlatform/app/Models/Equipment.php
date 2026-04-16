@@ -15,18 +15,22 @@ class Equipment extends Model
     //
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     * Note: 'status' is intentionally excluded as it should only be set by observers
+     * through Actions (Loan, Return, etc.)
+     */
     protected $fillable = [
         'brand',
         'model',
         'category',
         'cost',
         'condition',
-        'status',
         'acquisition_date',
         'loan_date',
         'loan_expire_date',
         'storage_location',
-        'employee_id',
+        'user_id',
     ];
 
     protected $casts = [
@@ -38,9 +42,9 @@ class Equipment extends Model
         'loan_expire_date' => 'date',
     ];
 
-    public function employee(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(User::class);
     }
 
     public function maintenanceRecords(): HasMany
@@ -52,6 +56,14 @@ class Equipment extends Model
     {
         return $this->hasMany(EquipmentHistory::class);
     }
+
+    /**
+     * Set the status attribute directly (for internal use by observers/actions)
+     * This method bypasses the fillable protection
+     */
+    public function setStatus(Status $status): self
+    {
+        $this->attributes['status'] = $status;
+        return $this;
+    }
 }
-
-

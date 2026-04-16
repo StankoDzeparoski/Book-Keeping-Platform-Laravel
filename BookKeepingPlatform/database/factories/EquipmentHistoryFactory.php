@@ -17,9 +17,9 @@ class EquipmentHistoryFactory extends Factory
      */
     public function definition(): array
     {
-        $employeeIds = [];
+        $userIds = [];
         for ($i = 0; $i < fake()->numberBetween(1, 3); $i++) {
-            $employeeIds[] = fake()->numberBetween(1, 50);
+            $userIds[] = fake()->numberBetween(1, 50);
         }
 
         $loanDates = [];
@@ -32,7 +32,7 @@ class EquipmentHistoryFactory extends Factory
 
         return [
             'equipment_id' => null, // Will be set in seeder
-            'employee_ids' => $employeeIds,
+            'user_ids' => $userIds,
             'loan_date' => $loanDates,
             'loan_expire_date' => $loanExpireDates,
         ];

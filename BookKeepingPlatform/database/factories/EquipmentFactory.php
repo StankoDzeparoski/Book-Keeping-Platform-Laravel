@@ -26,12 +26,13 @@ class EquipmentFactory extends Factory
             'category' => fake()->randomElement(Category::cases()),
             'cost' => fake()->numberBetween(200, 3000),
             'condition' => fake()->randomElement(Condition::cases()),
-            'status' => fake()->randomElement(Status::cases()),
+            // 'status' is intentionally not set - it's set by the observer to AVAILABLE by default
             'acquisition_date' => fake()->dateTimeBetween('-5 years', 'now')->format('Y-m-d'),
-            'loan_date' => fake()->optional(0.5)->dateTimeBetween('-2 years', 'now')->format('Y-m-d'),
-            'loan_expire_date' => fake()->optional(0.5)->dateTimeBetween('now', '+1 year')->format('Y-m-d'),
+            // 'loan_date' and 'loan_expire_date' are intentionally null - set via Loan action
+            'loan_date' => null,
+            'loan_expire_date' => null,
             'storage_location' => fake()->randomElement(['Warehouse A', 'Warehouse B', 'Office', 'Storage Room', 'Lab']),
-            'employee_id' => null,
+            'user_id' => null,
         ];
     }
 }

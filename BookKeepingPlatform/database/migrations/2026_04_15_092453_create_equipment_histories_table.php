@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('equipment_histories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
-            $table->json('employee_ids'); // List of employee IDs
+            $table->json('user_ids'); // List of user IDs
             $table->json('loan_date')->nullable(); // List of loan dates
             $table->json('loan_expire_date')->nullable(); // List of loan expiration dates
             $table->timestamps();
