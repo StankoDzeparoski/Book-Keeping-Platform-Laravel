@@ -13,9 +13,8 @@ class ReturnEquipmentAction
      * Return equipment from a user.
      * Also updates the EquipmentHistory to reflect the actual return date.
      *
-     * Equipment only becomes AVAILABLE if the return date is today.
-     * If the return date is in the future, the equipment remains ASSIGNED but the
-     * loan_expire_date is updated to the new return date.
+     * Equipment becomes AVAILABLE if returning today or on the loan expiration date.
+     * If the return date is any other date (early or late), the equipment remains ASSIGNED.
      *
      * @param Equipment $equipment The equipment being returned
      * @param string $returnDate The return date (YYYY-MM-DD format)
@@ -29,21 +28,25 @@ class ReturnEquipmentAction
         $today = Carbon::now()->startOfDay();
         $returnDateCarbon = $returnDateCarbon->startOfDay();
 
-        // Determine if equipment should become available immediately
+        // Determine if equipment should become available
+        // Equipment becomes available if returning today OR on the due date
+        $loanExpireDate = $equipment->loan_expire_date ? $equipment->loan_expire_date->startOfDay() : null;
         $isReturnToday = $returnDateCarbon->equalTo($today);
+        $isReturnOnDueDate = $loanExpireDate && $returnDateCarbon->equalTo($loanExpireDate);
+        $shouldBeAvailable = $isReturnToday || $isReturnOnDueDate;
 
-        // Update equipment based on whether this is today's return or future return
+        // Update equipment based on whether this is an on-time return
         $updateData = [
             'loan_expire_date' => $returnDateCarbon,
         ];
 
-        if ($isReturnToday) {
-            // Only clear loan info and set to AVAILABLE if returning today
+        if ($shouldBeAvailable) {
+            // Clear loan info and set to AVAILABLE if returning today or on due date
             $updateData['loan_date'] = null;
             $updateData['user_id'] = null;
             $updateData['status'] = Status::AVAILABLE;
         }
-        // For future returns, keep the equipment ASSIGNED - don't clear user_id or loan_date
+        // For other dates (early or late returns), keep the equipment ASSIGNED - don't clear user_id or loan_date
 
         // Use saveQuietly() to prevent observer from creating duplicate history entries
         // We manually handle history updates in this action

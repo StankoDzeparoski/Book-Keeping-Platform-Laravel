@@ -18,6 +18,11 @@ class EquipmentHistoryController extends Controller
      */
     public function index(Request $request): View|Factory|Application
     {
+        // Only managers can view equipment history
+        if (!auth()->check() || !auth()->user()->isManager()) {
+            abort(403, 'Unauthorized. Only managers can view equipment history.');
+        }
+
         $equipmentHistories = EquipmentHistory::query()
             ->with('equipment')
             ->when($request->has('search'),

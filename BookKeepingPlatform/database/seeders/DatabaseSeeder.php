@@ -23,12 +23,14 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test',
             'surname' => 'User',
             'email' => 'test@example.com',
+            'role' => 'Employee',
         ]);
 
-        // Create 50 users (employees)
+        // Create 50 users (mix of managers and employees)
         $users = User::factory(50)->create();
 
         // Create 100 equipment items (all with status AVAILABLE and no loan dates)
+        // Conditions will only be NEW or USED (not BROKEN)
         $equipmentItems = Equipment::factory(100)->create();
 
         // Assign some equipment to users via Loan Action (simulating equipment loans)
@@ -41,9 +43,10 @@ class DatabaseSeeder extends Seeder
             $loanAction->execute($equipment, $user, $loanDate, $loanExpireDate);
         }
 
-        // Create maintenance records for equipment
-        foreach ($equipmentItems as $equipment) {
-            MaintenanceRecord::factory(fake()->numberBetween(1, 3))->create([
+        // Create ONE maintenance record per equipment (no duplicates)
+        // Only create for 20% of equipment to keep data reasonable
+        foreach ($equipmentItems->random((int) count($equipmentItems) * 0.2) as $equipment) {
+            MaintenanceRecord::factory()->create([
                 'equipment_id' => $equipment->id,
             ]);
         }

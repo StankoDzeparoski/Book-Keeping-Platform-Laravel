@@ -18,6 +18,11 @@ class UserController extends Controller
      */
     public function index(Request $request): View|Factory|Application
     {
+        // Only managers can view users
+        if (!auth()->check() || !auth()->user()->isManager()) {
+            abort(403, 'Unauthorized. Only managers can view users.');
+        }
+
         $users = User::query()
             ->when($request->has('search'),
                 fn($q) => $q->where('name', 'like', '%'.$request->get('search').'%')
@@ -65,6 +70,11 @@ class UserController extends Controller
      */
     public function show(User $user): View|Factory|Application
     {
+        // Only managers can view users
+        if (!auth()->check() || !auth()->user()->isManager()) {
+            abort(403, 'Unauthorized. Only managers can view users.');
+        }
+
         $user->loadMissing('equipment');
 
         return view('users.show', compact('user'));

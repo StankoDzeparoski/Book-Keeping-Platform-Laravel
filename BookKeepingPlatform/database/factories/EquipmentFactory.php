@@ -20,13 +20,20 @@ class EquipmentFactory extends Factory
      */
     public function definition(): array
     {
+        // Randomly determine condition
+        $condition = fake()->randomElement(Condition::cases());
+
+        // If condition is BROKEN, status must be REPAIR
+        // If condition is NEW or USED, status is AVAILABLE
+        $status = ($condition->value === 'broken') ? Status::REPAIR : Status::AVAILABLE;
+
         return [
             'brand' => fake()->randomElement(['Dell', 'HP', 'Lenovo', 'Apple', 'ASUS', 'Logitech', 'Microsoft', 'Razer']),
             'model' => fake()->bothify('Model-###-???'),
             'category' => fake()->randomElement(Category::cases()),
             'cost' => fake()->numberBetween(200, 3000),
-            'condition' => fake()->randomElement(Condition::cases()),
-            'status' => Status::AVAILABLE, // Explicitly set default status
+            'condition' => $condition,
+            'status' => $status, // REPAIR if broken, AVAILABLE otherwise
             'acquisition_date' => fake()->dateTimeBetween('-5 years', 'now')->format('Y-m-d'),
             'loan_date' => null,
             'loan_expire_date' => null,

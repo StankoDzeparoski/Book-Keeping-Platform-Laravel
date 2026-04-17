@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\MaintenanceRecord;
+use App\Models\Equipment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -36,7 +37,7 @@ class MaintenanceRecordFactory extends Factory
         }
 
         return [
-            'equipment_id' => null, // Will be set in seeder
+            'equipment_id' => Equipment::factory(), // Create or associate unique equipment
             'description' => [
                 fake()->randomElement($descriptions),
                 fake()->randomElement($descriptions),
@@ -46,3 +47,5 @@ class MaintenanceRecordFactory extends Factory
         ];
     }
 }
+
+

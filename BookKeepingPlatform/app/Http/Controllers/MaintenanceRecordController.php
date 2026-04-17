@@ -18,6 +18,11 @@ class MaintenanceRecordController extends Controller
      */
     public function index(Request $request): View|Factory|Application
     {
+        // Only managers can view maintenance records
+        if (!auth()->check() || !auth()->user()->isManager()) {
+            abort(403, 'Unauthorized. Only managers can view maintenance records.');
+        }
+
         $maintenanceRecords = MaintenanceRecord::query()
             ->with('equipment')
             ->when($request->has('search'),
@@ -64,6 +69,11 @@ class MaintenanceRecordController extends Controller
      */
     public function show(MaintenanceRecord $maintenanceRecord): View|Factory|Application
     {
+        // Only managers can view maintenance records
+        if (!auth()->check() || !auth()->user()->isManager()) {
+            abort(403, 'Unauthorized. Only managers can view maintenance records.');
+        }
+
         $maintenanceRecord->loadMissing('equipment');
 
         return view('maintenanceRecord.show', compact('maintenanceRecord'));

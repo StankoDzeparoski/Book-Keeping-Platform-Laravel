@@ -9,6 +9,20 @@
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
 
+        <!-- Surname -->
+        <div class="mt-4">
+            <x-input-label for="surname" :value="__('Surname')" />
+            <x-text-input id="surname" class="block mt-1 w-full" type="text" name="surname" :value="old('surname')" required autocomplete="family-name" />
+            <x-input-error :messages="$errors->get('surname')" class="mt-2" />
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="mt-4">
+            <x-input-label for="dob" :value="__('Date of Birth (DD/MM/YYYY)')" />
+            <x-text-input id="dob" class="block mt-1 w-full" type="text" name="dob" :value="old('dob')" placeholder="DD/MM/YYYY" required />
+            <x-input-error :messages="$errors->get('dob')" class="mt-2" />
+        </div>
+
         <!-- Email Address -->
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email')" />
@@ -50,3 +64,5 @@
         </div>
     </form>
 </x-guest-layout>
+
+
