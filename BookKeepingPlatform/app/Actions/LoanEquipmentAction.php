@@ -20,13 +20,14 @@ class LoanEquipmentAction
      */
     public function execute(Equipment $equipment, User $user, string $loanDate, string $loanExpireDate): Equipment
     {
-        // Update equipment with loan information
-        $equipment->update([
+        // Update equipment with loan information - using forceFill to set all attributes
+        // This will trigger the observer's updated method which handles EquipmentHistory
+        $equipment->forceFill([
             'user_id' => $user->id,
             'loan_date' => Carbon::createFromFormat('Y-m-d', $loanDate),
             'loan_expire_date' => Carbon::createFromFormat('Y-m-d', $loanExpireDate),
             'status' => Status::ASSIGNED,
-        ]);
+        ])->save(); // Use save() instead of saveQuietly() to trigger observers
 
         return $equipment->refresh();
     }

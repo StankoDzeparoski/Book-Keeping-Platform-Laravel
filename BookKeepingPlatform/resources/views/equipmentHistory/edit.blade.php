@@ -1,8 +1,11 @@
-@extends('layouts.app')
-
-@section('content')
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-2xl mx-auto">
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            {{ __('Edit Equipment History') }}
+        </h2>
+    </x-slot>
+    <div class="py-12">
+        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
             <h1 class="text-3xl font-bold text-gray-900 mb-6">Edit Equipment History</h1>
 
             @if($errors->any())
@@ -121,5 +124,7 @@
             container.appendChild(input);
         }
     </script>
-@endsection
+        </div>
+    </div>
+</x-app-layout>
 

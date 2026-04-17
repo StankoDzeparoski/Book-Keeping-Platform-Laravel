@@ -59,13 +59,7 @@ class User extends Authenticatable
         return $this->hasMany(Equipment::class);
     }
 
-    /**
-     * Get the equipment history records for this user.
-     */
-    public function equipmentHistories(): HasMany
-    {
-        return $this->hasMany(EquipmentHistory::class);
-    }
+
 
     /**
      * Check if user is a Manager

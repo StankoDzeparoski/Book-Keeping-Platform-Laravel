@@ -65,7 +65,7 @@ class UserController extends Controller
      */
     public function show(User $user): View|Factory|Application
     {
-        $user->loadMissing('equipment', 'equipmentHistories');
+        $user->loadMissing('equipment');
 
         return view('users.show', compact('user'));
     }

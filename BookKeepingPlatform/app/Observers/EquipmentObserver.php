@@ -25,12 +25,12 @@ class EquipmentObserver
      */
     public function updated(Equipment $equipment): void
     {
-        // Check if loan_date or loan_expire_date changed
+        // Check if status, loan_date or loan_expire_date changed
         $loaned = $equipment->wasChanged(['loan_date', 'loan_expire_date', 'status']);
 
-        if ($loaned && $equipment->user_id && $equipment->loan_date && $equipment->loan_expire_date) {
+        if ($loaned) {
             // If equipment was just loaned (status changed to ASSIGNED), create/update history
-            if ($equipment->status === Status::ASSIGNED) {
+            if ($equipment->status === Status::ASSIGNED && $equipment->user_id && $equipment->loan_date && $equipment->loan_expire_date) {
                 $this->updateEquipmentHistory($equipment);
             }
         }
@@ -56,19 +56,28 @@ class EquipmentObserver
             $loanDates = $history->loan_date ?? [];
             $loanExpireDates = $history->loan_expire_date ?? [];
 
-            // Add current loan info if not already present
-            if (!in_array($equipment->user_id, $userIds)) {
-                $userIds[] = $equipment->user_id;
+            // Ensure arrays
+            if (!is_array($userIds)) {
+                $userIds = [];
+            }
+            if (!is_array($loanDates)) {
+                $loanDates = [];
+            }
+            if (!is_array($loanExpireDates)) {
+                $loanExpireDates = [];
             }
 
+            // Always append - allow same user to appear multiple times
+            $userIds[] = $equipment->user_id;
             $loanDates[] = $equipment->loan_date->format('Y-m-d');
             $loanExpireDates[] = $equipment->loan_expire_date->format('Y-m-d');
 
-            $history->update([
+            // Use forceFill for JSON attribute updates
+            $history->forceFill([
                 'user_ids' => $userIds,
                 'loan_date' => $loanDates,
                 'loan_expire_date' => $loanExpireDates,
-            ]);
+            ])->saveQuietly();
         }
     }
 
