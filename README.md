@@ -1,1121 +1,966 @@
-# BookKeeping Platform - Complete Documentation
+# BookKeeping Platform - Equipment Management System
 
-## Project Overview
-
-The BookKeeping Platform is a comprehensive equipment management and tracking system built with Laravel. It provides role-based access control, equipment loaning workflows, maintenance tracking, and repair management for organizations.
-
-**Current Date:** April 17, 2026  
-**Framework:** Laravel (PHP)  
-**Frontend:** Blade Templates with Tailwind CSS  
-**Database:** SQLite
-
----
+A comprehensive Laravel-based equipment management system designed to track, loan, maintain, and manage organizational equipment across different users and departments.
 
 ## Table of Contents
 
-1. [User Roles & Access Control](#user-roles--access-control)
-2. [Equipment Management](#equipment-management)
-3. [Equipment Loaning System](#equipment-loaning-system)
-4. [Equipment Return System](#equipment-return-system)
-5. [Equipment History Tracking](#equipment-history-tracking)
-6. [Broken Equipment & Repairs](#broken-equipment--repairs)
-7. [Maintenance Records](#maintenance-records)
-8. [Database Structure](#database-structure)
-9. [Routes & API Endpoints](#routes--api-endpoints)
-10. [Technical Implementation](#technical-implementation)
-11. [User Workflows](#user-workflows)
-12. [File Structure](#file-structure)
+- [Overview](#overview)
+- [Features](#features)
+- [System Requirements](#system-requirements)
+- [Installation](#installation)
+- [Initial Setup](#initial-setup)
+- [User Roles and Permissions](#user-roles-and-permissions)
+- [Core Modules](#core-modules)
+- [Data Models](#data-models)
+- [Usage Guide](#usage-guide)
+- [API Documentation](#api-documentation)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## User Roles & Access Control
+## Overview
 
-### Role Types
+The BookKeeping Platform is an equipment management system built with Laravel 12 that allows organizations to:
+- **Track Equipment**: Maintain a comprehensive database of all organizational equipment
+- **Manage Loans**: Handle equipment loans with expiration dates and automatic status tracking
+- **Monitor Maintenance**: Log and track maintenance records for all equipment
+- **Maintain History**: Keep detailed historical records of equipment assignments and loans
+- **Role-Based Access**: Enforce different permission levels for Managers and Employees
 
-The system supports two primary user roles:
-
-#### 1. **Manager**
-- Full administrative access
-- Can create, edit, delete equipment
-- Can view all equipment including broken items
-- Can manage equipment loans and returns
-- Can perform repairs and finish repairs
-- Can view all users
-- Access to maintenance records
-
-#### 2. **Employee**
-- Limited access to equipment
-- Can only see equipment assigned to them or available equipment
-- Cannot see broken equipment
-- Can borrow available equipment
-- Can return equipment assigned to them
-- Cannot perform repairs
-- No access to administrative functions
-
-### Access Control Implementation
-
-**File:** `app/Http/Middleware/IsManager.php` (inferred)
-
-Access is controlled via:
-- Middleware checks on protected routes
-- Authorization checks in controllers
-- Conditional rendering in Blade templates
+The system is designed with a modern, responsive user interface using Laravel Breeze authentication and Tailwind CSS styling.
 
 ---
 
-## Equipment Management
+## Features
+
+### Equipment Management
+- ✅ **Create Equipment**: Add new equipment with detailed specifications (Manager only)
+- ✅ **View Equipment**: Browse all equipment with filtering and search capabilities
+- ✅ **Edit Equipment**: Update![img.png](img.png) equipment details (Manager only)
+- ✅ **Delete Equipment**: Remove equipment from the system (Manager only)
+- ✅ **Equipment Status Tracking**: Monitor equipment status (Available, Assigned, Repair, Lost)
+- ✅ **Condition Tracking**: Track equipment condition (New, Used, Broken)
+
+### Equipment Loaning
+- ✅ **Loan Equipment**: Employees can loan available equipment with due dates
+- ✅ **Return Equipment**: Return loaned equipment to available status
+- ✅ **Early Return**: Return equipment before the loan expiration date
+- ✅ **History Tracking**: Automatic tracking of all loan transactions
+- ✅ **Smart Loan Assignment**: Employees can only loan to themselves; Managers can loan to any user
+
+### Equipment Maintenance
+- ✅ **Repair Actions**: Log equipment repairs with costs and descriptions
+- ✅ **Maintenance Records**: Track all maintenance history
+- ✅ **Repair Status**: Equipment status changes to "Repair" when logged for maintenance
+- ✅ **Finish Repair**: Complete repair and return equipment to Available/Assigned status
+
+### Equipment History & Audit Trail
+- ✅ **Complete History**: Maintain detailed records of all equipment assignments
+- ✅ **Loan History**: Track all loans with start and end dates
+- ✅ **Employee Assignment**: See which employees have had which equipment
+- ✅ **Timeline View**: View complete timeline of equipment movements
+
+### User Management
+- ✅ **User Profiles**: Create and manage user profiles with personal information
+- ✅ **Role Assignment**: Assign roles (Manager or Employee) to users
+- ✅ **Date of Birth**: Track employee date of birth
+- ✅ **View Assigned Equipment**: See all equipment currently assigned to a user
+
+### Authentication & Security
+- ✅ **User Registration**: New users can create accounts
+- ✅ **Email Verification**: Verify user email addresses
+- ✅ **Password Hashing**: Secure password storage using bcrypt
+- ✅ **Session Management**: Secure session handling
+- ✅ **CSRF Protection**: Protection against cross-site request forgery
+
+---
+
+## System Requirements
+
+- **PHP**: 8.2 or higher
+- **Laravel**: 12.0 or higher
+- **Database**: SQLite (default) or MySQL/PostgreSQL
+- **Node.js**: 14.0 or higher (for frontend compilation)
+- **Composer**: Latest version
+- **npm**: 6.0 or higher
+
+### Required Extensions
+- PHP JSON extension
+- PHP PDO extension
+- PHP Tokenizer extension
+- PHP XML extension
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd BookKeepingPlatform
+```
+
+### 2. Install PHP Dependencies
+
+```bash
+composer install
+```
+
+### 3. Configure Environment
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Edit `.env` file and configure:
+- Database settings
+- App name and URL
+- Mail configuration (optional)
+
+### 4. Create Database
+
+For SQLite (default):
+```bash
+touch database/database.sqlite
+```
+
+For MySQL, create a database and update `.env`:
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=bookkeeping_platform
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### 5. Install Frontend Dependencies
+
+```bash
+npm install
+```
+
+### 6. Run Migrations and Seeders
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+This will:
+- Create all required database tables
+- Seed initial test data with sample equipment, users, and maintenance records
+
+### 7. Build Frontend Assets
+
+```bash
+npm run dev
+```
+
+Or for production:
+```bash
+npm run build
+```
+
+### 8. Start Development Server
+
+```bash
+php artisan serve
+```
+
+The application will be available at `http://127.0.0.1:8000`
+
+### Quick Setup Command
+
+Alternatively, run the composer setup command:
+```bash
+composer run setup
+```
+
+---
+
+## Initial Setup
+
+### Default Test Users
+
+The database seeder creates the following test users:
+
+**Manager Account:**
+- Email: `manager@example.com`
+- Password: `password`
+
+**Employee Accounts:**
+- Email: `test@example.com`
+- Password: `password`
+
+### Create New Users
+
+1. Navigate to Users management (Manager only)
+2. Click "Create User"
+3. Fill in the required information:
+   - First Name
+   - Last Name
+   - Date of Birth (DD/MM/YYYY format)
+   - Email
+   - Password
+   - Role (Manager or Employee)
+4. Click "Create"
+
+### Login
+
+1. Visit `http://127.0.0.1:8000/login`
+2. Enter email and password
+3. Click "Sign in"
+
+---
+
+## User Roles and Permissions
+
+### Manager Role
+
+Managers have full system access and can:
+
+**Equipment Management:**
+- ✅ Create new equipment
+- ✅ Edit equipment details
+- ✅ Delete equipment
+- ✅ View all equipment in the system
+- ✅ Repair equipment and mark as "Repair"
+- ✅ Finish repairs and return equipment to "Available" or "Assigned" status
+- ✅ Loan equipment to any user
+- ✅ Log repairs and maintenance
+
+**User Management:**
+- ✅ View all users
+- ✅ Create new user accounts
+- ✅ Edit user information
+- ✅ Delete user accounts
+- ✅ Assign roles
+
+**Reports & History:**
+- ✅ View complete equipment history
+- ✅ View all maintenance records
+- ✅ Access audit trails
+- ✅ View all historical data
+
+**Navigation:**
+- Has access to all menu items
+
+### Employee Role
+
+Employees have limited access and can:
+
+**Equipment Management:**
+- ✅ View available equipment
+- ✅ View equipment assigned to them
+- ✅ Loan available equipment (to themselves only)
+- ✅ Return equipment they have loaned
+- ❌ Create, edit, or delete equipment
+- ❌ Repair equipment
+- ❌ View equipment history or maintenance records
+
+**Restrictions:**
+- Cannot access user management
+- Cannot view equipment history
+- Cannot access maintenance records
+- Cannot modify other users' equipment
+- Cannot access manager-only features
+
+**Navigation:**
+- Limited menu items (Equipment only)
+- History, Maintenance, and Users tabs are hidden
+
+---
+
+## Core Modules
+
+### 1. Equipment Module
+
+**Database Table**: `equipment`
+
+Manages all organizational equipment with comprehensive tracking.
+
+**Key Fields:**
+- `id`: Unique identifier
+- `brand`: Equipment brand/manufacturer
+- `model`: Equipment model number or VIN
+- `category`: Type of equipment (Laptop, Computer, Peripherals, Ergonomics)
+- `cost`: Purchase price
+- `condition`: Current physical condition (New, Used, Broken)
+- `status`: Operational status (Available, Assigned, Repair, Lost)
+- `acquisition_date`: Date equipment was purchased
+- `loan_date`: Current loan start date (if loaned)
+- `loan_expire_date`: Current loan expiration date
+- `storage_location`: Physical storage location
+- `user_id`: Currently assigned user ID (if loaned)
+
+**Status Workflow:**
+```
+Available (initial) 
+    ↓
+    ├→ Loan → Assigned
+    │          ├→ Return → Available
+    │          └→ Early Return → Available
+    │
+    ├→ Repair (Manager) → Repair
+    │                     └→ Finish Repair → Available or Assigned
+    │
+    └→ Lost (if lost)
+```
+
+### 2. Equipment History Module
+
+**Database Table**: `equipment_histories`
+
+Maintains complete audit trail of equipment assignments and loans.
+
+**Key Fields:**
+- `id`: Unique identifier
+- `equipment_id`: Reference to equipment
+- `loan_dates`: Array of loan start dates
+- `loan_expire_dates`: Array of corresponding expiration dates
+- `user_ids`: Array of user IDs who have borrowed the equipment
+
+**Purpose:**
+- Track all past assignments
+- Maintain loan history
+- Generate equipment usage reports
+- Audit trail for compliance
+
+**Data Format:**
+Stores arrays of dates and user IDs to track complete history:
+```php
+[
+    'loan_dates' => ['2026-04-10', '2026-04-15', '2026-04-20'],
+    'loan_expire_dates' => ['2026-04-20', '2026-04-25', '2026-04-30'],
+    'user_ids' => [1, 2, 3]
+]
+```
+
+### 3. Maintenance Record Module
+
+**Database Table**: `maintenance_records`
+
+Tracks all equipment maintenance, repairs, and service records.
+
+**Key Fields:**
+- `id`: Unique identifier
+- `equipment_id`: Reference to equipment
+- `description`: Maintenance work performed
+- `cost`: Maintenance cost
+- `maintenance_date`: Date of maintenance
+
+**Purpose:**
+- Log all repairs and maintenance
+- Track maintenance costs
+- Generate service history reports
+- Monitor equipment reliability
+
+**Typical Uses:**
+- Recording hardware repairs
+- Logging software updates
+- Tracking professional maintenance services
+- Recording preventive maintenance
+
+### 4. User Module
+
+**Database Table**: `users`
+
+Manages user accounts with role-based permissions.
+
+**Key Fields:**
+- `id`: Unique identifier
+- `name`: First name
+- `surname`: Last name
+- `dob`: Date of birth (DD/MM/YYYY format)
+- `email`: Email address (unique)
+- `password`: Hashed password
+- `email_verified_at`: Email verification timestamp
+- `role`: User role (Manager or Employee)
+
+**Relationships:**
+- Has many Equipment records (equipment they have borrowed)
+- Can have multiple equipment assignments
+
+---
+
+## Data Models
 
 ### Equipment Model
 
-**File:** `app/Models/Equipment.php`
-
-**Attributes:**
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| id | bigint | Primary key |
-| brand | string | Equipment brand/manufacturer |
-| model | string | Equipment model name |
-| category | enum | Category (inferred from project) |
-| cost | integer | Purchase cost in dollars |
-| condition | enum | Condition: new, used, broken |
-| status | enum | Status: Available, Assigned, Repair, Lost |
-| acquisition_date | date | Date equipment was acquired |
-| loan_date | date | Current loan start date (null if not loaned) |
-| loan_expire_date | date | Current loan expiration date |
-| storage_location | string | Physical storage location |
-| user_id | bigint | Currently assigned user (FK) |
-| created_at | timestamp | Record creation timestamp |
-| updated_at | timestamp | Record update timestamp |
-
-### Enums
-
-#### Condition Enum
 ```php
-enum Condition: string {
-    case NEW = 'new';
-    case USED = 'used';
-    case BROKEN = 'broken';
+class Equipment {
+    - id: integer (primary key)
+    - brand: string
+    - model: string
+    - category: enum (Laptop|Computer|Peripherals|Ergonomics)
+    - cost: integer (in currency units)
+    - condition: enum (new|used|broken)
+    - status: enum (Available|Assigned|Repair|Lost)
+    - acquisition_date: date
+    - loan_date: nullable date
+    - loan_expire_date: nullable date
+    - storage_location: string
+    - user_id: nullable foreign key (users)
+    
+    Relationships:
+    - belongsTo: User
+    - hasMany: MaintenanceRecord
+    - hasMany: EquipmentHistory
 }
 ```
 
-#### Status Enum
+### User Model
+
 ```php
-enum Status: string {
-    case AVAILABLE = 'Available';
-    case ASSIGNED = 'Assigned';
-    case REPAIR = 'Repair';
-    case LOST = 'Lost';
+class User {
+    - id: integer (primary key)
+    - name: string
+    - surname: string
+    - dob: string (date of birth)
+    - email: string (unique)
+    - email_verified_at: nullable timestamp
+    - password: string (hashed)
+    - role: string (Manager|Employee)
+    - created_at: timestamp
+    - updated_at: timestamp
+    
+    Relationships:
+    - hasMany: Equipment
+    
+    Methods:
+    - isManager(): bool
+    - isEmployee(): bool
 }
 ```
-
-#### Category Enum
-Location: `app/Enums/Category.php`
-
-### Equipment CRUD Operations
-
-**Manager-Only Actions:**
-- `POST /equipment` - Create new equipment
-- `GET /equipment/{id}/edit` - Edit equipment form
-- `PATCH /equipment/{id}` - Update equipment
-- `DELETE /equipment/{id}` - Delete equipment
-
-**All Users:**
-- `GET /equipment` - View equipment list (filtered by role)
-- `GET /equipment/{id}` - View equipment details
-
-### Equipment Visibility Rules
-
-**Managers:** See all equipment
-
-**Employees:** 
-- Can see equipment assigned to them
-- Can see equipment with status AVAILABLE
-- Cannot see equipment with condition BROKEN
-- Cannot see REPAIR, LOST status equipment
-
----
-
-## Equipment Loaning System
-
-### Loan Equipment Action
-
-**File:** `app/Actions/LoanEquipmentAction.php`
-
-**Purpose:** Transfers equipment to a user with loan dates
-
-**Process Flow:**
-1. Manager/Employee initiates loan
-2. Select user to loan to
-3. Enter loan date and expiration date
-4. Equipment status changes to ASSIGNED
-5. EquipmentHistory is created/updated
-6. Equipment is assigned to user
-
-**Key Features:**
-- Single save() call triggers observer
-- Observer creates/updates EquipmentHistory
-- Appends to existing history arrays if record exists
-- Tracks all users who have loaned equipment
-
-### Loan Route
-
-**Route:** `POST /equipment/{equipment}/loan`  
-**Access:** Manager & Employee  
-**Name:** `equipment.loan`
-
-### Loan Validation
-
-```php
-$validated = $request->validate([
-    'user_id' => 'required|exists:users,id',
-    'loan_date' => 'required|date_format:Y-m-d|after_or_equal:today',
-    'loan_expire_date' => 'required|date_format:Y-m-d|after:loan_date',
-]);
-```
-
-**Rules:**
-- User must exist in database
-- Loan date must be today or future
-- Expiration date must be after loan date
-
-### Loan Equipment Modal (Frontend)
-
-**Location:** `resources/views/equipment/index.blade.php`
-
-**Form Fields:**
-- User selection dropdown
-- Loan date picker
-- Loan expiration date picker
-
-**Visibility:** Equipment with status AVAILABLE
-
----
-
-## Equipment Return System
-
-### Return Equipment Action
-
-**File:** `app/Actions/ReturnEquipmentAction.php`
-
-**Purpose:** Processes equipment returns with conditional status change
-
-**Key Logic:**
-```
-if return_date = TODAY:
-    ├─ Equipment status → AVAILABLE
-    ├─ user_id → null
-    └─ loan_date → null
-
-if return_date > TODAY (Future Return):
-    └─ Equipment status → ASSIGNED (unchanged)
-    └─ Only loan_expire_date updated
-```
-
-**Process Flow:**
-1. Equipment is found and refreshed from database
-2. Equipment updated with saveQuietly() to prevent duplicate history
-3. EquipmentHistory updated with actual return date
-4. Final refresh ensures latest data
-
-### Return Route
-
-**Route:** `POST /equipment/{equipment}/return`  
-**Access:** Manager & assigned user  
-**Name:** `equipment.return`
-
-### Return Validation
-
-```php
-$maxReturnDate = $equipment->loan_expire_date->format('Y-m-d');
-$validated = $request->validate([
-    'return_date' => 'required|date_format:Y-m-d|before_or_equal:' . $maxReturnDate,
-]);
-```
-
-**Rules:**
-- Return date must be valid date
-- Return date cannot exceed original loan expiration date
-
-### Return Equipment Modal (Frontend)
-
-**Location:** `resources/views/equipment/index.blade.php`
-
-**Form Fields:**
-- Return date picker
-
-**Visibility:** Equipment with status ASSIGNED (for manager or assigned user)
-
-### Early Return Workflow
-
-**Scenario:** Equipment loaned 4/17-4/30, returned 4/20
-
-**Result:**
-- Equipment status: ASSIGNED (stays assigned if user has equipment)
-- Equipment loan_expire_date: 4/20 (updated)
-- EquipmentHistory loan_expire_date: ['2026-04-20'] (updated)
-- Equipment still assigned to user until actual return
-
----
-
-## Equipment History Tracking
 
 ### EquipmentHistory Model
 
-**File:** `app/Models/EquipmentHistory.php`
-
-**Attributes:**
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| id | bigint | Primary key |
-| equipment_id | bigint | Foreign key to equipment |
-| user_ids | json | Array of user IDs who loaned equipment |
-| loan_date | json | Array of loan start dates |
-| loan_expire_date | json | Array of actual/scheduled return dates |
-| created_at | timestamp | Record creation timestamp |
-| updated_at | timestamp | Record update timestamp |
-
-### Storage Format
-
-All date fields are stored as **JSON arrays** to track multiple loans:
-
 ```php
-{
-    equipment_id: 1,
-    user_ids: [5, 3, 5],                               // Multiple users, including repeats
-    loan_date: ['2026-04-17', '2026-04-20', '2026-04-22'],
-    loan_expire_date: ['2026-04-20', '2026-05-01', '2026-05-05']
+class EquipmentHistory {
+    - id: integer (primary key)
+    - equipment_id: foreign key (equipment)
+    - loan_dates: array (list of loan dates)
+    - loan_expire_dates: array (list of expiration dates)
+    - user_ids: array (list of user IDs)
+    - created_at: timestamp
+    - updated_at: timestamp
+    
+    Relationships:
+    - belongsTo: Equipment
 }
 ```
-
-### EquipmentObserver
-
-**File:** `app/Observers/EquipmentObserver.php`
-
-**Triggered Events:**
-- `created()` - Sets default status to AVAILABLE
-- `updated()` - Creates/updates EquipmentHistory when status changes to ASSIGNED
-
-**Logic:**
-1. Detects when equipment status changes to ASSIGNED
-2. Creates new history record if none exists
-3. Appends to existing arrays if record exists
-4. Uses forceFill() for JSON attribute updates
-
-### History Creation Flow
-
-**First Loan:**
-```php
-MaintenanceRecord created with:
-- user_ids: [5]
-- loan_date: ['2026-04-17']
-- loan_expire_date: ['2026-04-30']
-```
-
-**Second Loan (same equipment):**
-```php
-MaintenanceRecord updated:
-- user_ids: [5, 3]
-- loan_date: ['2026-04-17', '2026-04-20']
-- loan_expire_date: ['2026-04-20', '2026-05-10']
-```
-
-### History Display
-
-**Location:** Equipment show page and equipment details  
-**Shows:** All loan transactions with user IDs, dates, and return dates
-
----
-
-## Broken Equipment & Repairs
-
-### Broken Equipment Visibility
-
-**Manager:** Can see all equipment including broken items
-
-**Employee:** 
-- Cannot see equipment with condition BROKEN
-- Broken equipment filtered from equipment list
-- Employees see only: Own equipment + Available equipment
-
-**Filter Logic:**
-```php
-if (employee && !manager) {
-    $query->where('condition', '!=', Condition::BROKEN->value);
-}
-```
-
-### Repair Action Button
-
-**Visibility:** Manager only
-
-**Shows when:**
-- Equipment condition = BROKEN
-- Equipment status ≠ REPAIR
-
-**Location:** 
-- Equipment detail page (header actions)
-- Equipment index table (actions column)
-
-**Color:** Orange text (text-orange-600)
-
-### Repair Equipment Action
-
-**File:** `app/Actions/RepairEquipmentAction.php`
-
-**Purpose:** Create or update maintenance record and change status to REPAIR
-
-**Process Flow:**
-1. Equipment status changes to REPAIR
-2. Creates new MaintenanceRecord if none exists
-3. Updates existing MaintenanceRecord if one exists
-4. Appends repair description and date to arrays
-5. Increments cumulative cost
-
-**Returns:** Updated MaintenanceRecord
-
-### Repair Route & Form
-
-**Route:** `POST /equipment/{equipment}/repair`  
-**Access:** Manager only  
-**Name:** `equipment.repair`
-
-**Form Fields:**
-- Repair Description (textarea, required, min 3 chars)
-- Repair Cost (number, required, min 1)
-- Maintenance Date (date, required)
-
-**Modal:** 
-- Location: Index and Show pages
-- Can close via Cancel or clicking outside
-- Form clears on each open
-- Dark mode support
-
-### Repair Workflow
-
-**Step 1: Log Repair**
-```
-Equipment state: BROKEN, AVAILABLE
-↓
-Manager clicks "Repair" button
-↓
-Modal form opens
-```
-
-**Step 2: Submit Repair**
-```
-Enter: Description, Cost, Date
-↓
-Click "Log Repair"
-↓
-Equipment status → REPAIR
-MaintenanceRecord created/updated
-```
-
-**Step 3: View Status**
-```
-Equipment status badge: REPAIR
-"Repair" button → Hidden
-"Finish Repair" button → Visible
-```
-
-### Finish Repair Action
-
-**File:** `app/Actions/FinishRepairAction.php`
-
-**Purpose:** Complete repair, update status and condition
-
-**Logic:**
-```
-if user_id assigned:
-    status → ASSIGNED
-else:
-    status → AVAILABLE
-condition → USED
-```
-
-**Process Flow:**
-1. Check if equipment has assigned user
-2. Set new status based on assignment
-3. Update condition to USED (repaired equipment)
-4. Refresh equipment
-
-**Returns:** Updated Equipment
-
-### Finish Repair Route
-
-**Route:** `POST /equipment/{equipment}/finish-repair`  
-**Access:** Manager only  
-**Name:** `equipment.finishRepair`
-
-**Action:** Form POST with confirmation dialog
-
-### Finish Repair Workflow
-
-**Step 1: Finish Button**
-```
-Equipment status: REPAIR
-↓
-Manager clicks "Finish Repair"
-↓
-Confirmation dialog appears
-```
-
-**Step 2: Confirm**
-```
-Click "Confirm"
-↓
-Equipment status updated
-Equipment condition → USED
-```
-
-**Step 3: Result**
-```
-If assigned: status = ASSIGNED, condition = USED
-If not assigned: status = AVAILABLE, condition = USED
-```
-
----
-
-## Maintenance Records
 
 ### MaintenanceRecord Model
 
-**File:** `app/Models/MaintenanceRecord.php`
-
-**Attributes:**
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| id | bigint | Primary key |
-| equipment_id | bigint | Foreign key to equipment |
-| description | json | Array of repair descriptions |
-| maintenance_date | json | Array of maintenance dates |
-| cost | integer | Total cumulative cost of all repairs |
-| created_at | timestamp | Record creation timestamp |
-| updated_at | timestamp | Record update timestamp |
-
-### Storage Format
-
-JSON arrays track all repairs for equipment:
-
 ```php
-{
-    equipment_id: 1,
-    description: ["Screen replaced", "Battery replaced"],
-    maintenance_date: ["2026-04-10", "2026-04-15"],
-    cost: 350  // Total: 150 + 200
+class MaintenanceRecord {
+    - id: integer (primary key)
+    - equipment_id: foreign key (equipment)
+    - description: text
+    - cost: integer
+    - maintenance_date: date
+    - created_at: timestamp
+    - updated_at: timestamp
+    
+    Relationships:
+    - belongsTo: Equipment
 }
 ```
 
-### MaintenanceRecord Display
-
-**Location:** Equipment show page  
-**Shows:** 
-- Total cost of all repairs
-- Dates of all maintenance work
-- Descriptions of repairs performed
-
-### Maintenance Observer
-
-**File:** `app/Observers/MaintenanceRecordObserver.php`
-
-Currently empty (ready for future audit logging)
-
 ---
 
-## Database Structure
+## Usage Guide
 
-### Tables
+### For Employees
 
-#### `equipment` table
-```sql
-CREATE TABLE equipment (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    brand VARCHAR(255),
-    model VARCHAR(255),
-    category VARCHAR(255),
-    cost INTEGER,
-    condition VARCHAR(255),
-    status VARCHAR(255),
-    acquisition_date DATE,
-    loan_date DATE NULL,
-    loan_expire_date DATE NULL,
-    storage_location VARCHAR(255),
-    user_id BIGINT NULL REFERENCES users(id),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-```
+#### Viewing Available Equipment
 
-#### `equipment_histories` table
-```sql
-CREATE TABLE equipment_histories (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    equipment_id BIGINT REFERENCES equipment(id) ON DELETE CASCADE,
-    user_ids JSON,
-    loan_date JSON,
-    loan_expire_date JSON,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-```
+1. Login with your employee credentials
+2. Click "Equipment" in the navigation menu
+3. You will see:
+   - Equipment assigned to you
+   - Available equipment you can loan
+4. Use the search bar to find specific equipment by brand name
 
-#### `maintenance_records` table
-```sql
-CREATE TABLE maintenance_records (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    equipment_id BIGINT REFERENCES equipment(id) ON DELETE CASCADE,
-    description JSON,
-    maintenance_date JSON,
-    cost INTEGER,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-```
+#### Loaning Equipment
 
-#### `users` table
-```sql
-CREATE TABLE users (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255),
-    surname VARCHAR(255),
-    email VARCHAR(255) UNIQUE,
-    role VARCHAR(255),
-    password VARCHAR(255),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-```
+1. Click on available equipment
+2. Click the "Loan" button
+3. You will be automatically selected as the recipient
+4. Enter the loan expiration date
+5. Click "Loan Equipment"
+6. The equipment status changes to "Assigned"
+7. You will see the equipment in your list with the loan dates
 
----
+#### Returning Equipment
 
-## Routes & API Endpoints
+1. Click on equipment you have loaned
+2. Click the "Return" button
+3. Enter the return date (defaults to today)
+4. Click "Return Equipment"
+5. Equipment becomes available again
+6. The loan is recorded in the equipment history
+7. You can now loan other equipment
 
-### Authentication Routes
+#### Viewing Your Profile
 
-**File:** `routes/auth.php`
+1. Click your name in the top-right corner
+2. Select "Profile"
+3. View your personal information
+4. Update your email (if needed)
+5. Change your password
 
-- `GET /register` - Registration form
-- `POST /register` - Register user
-- `GET /login` - Login form
-- `POST /login` - Login user
-- `POST /logout` - Logout user
+### For Managers
 
-### Public Routes
+#### Equipment Management
 
-- `GET /` - Welcome page
-- `GET /dashboard` - Dashboard (authenticated users)
+##### Creating Equipment
 
-### Equipment Routes
-
-**All Authenticated Users:**
-```
-GET    /equipment              → equipment.index (view list)
-GET    /equipment/{id}         → equipment.show (view details)
-POST   /equipment/{id}/loan    → equipment.loan (loan equipment)
-POST   /equipment/{id}/return  → equipment.return (return equipment)
-```
-
-**Manager Only:**
-```
-GET    /equipment/create       → equipment.create (create form)
-POST   /equipment              → equipment.store (store new)
-GET    /equipment/{id}/edit    → equipment.edit (edit form)
-PATCH  /equipment/{id}         → equipment.update (update)
-DELETE /equipment/{id}         → equipment.destroy (delete)
-POST   /equipment/{id}/repair  → equipment.repair (start repair)
-POST   /equipment/{id}/finish-repair → equipment.finishRepair (finish repair)
-```
-
-### Other Routes
-
-**Manager Only:**
-```
-GET/POST/PATCH/DELETE /equipmentHistory/* → Equipment history management
-GET/POST/PATCH/DELETE /maintenanceRecord/* → Maintenance records management
-GET/POST/PATCH/DELETE /users/*             → User management
-```
-
-**Profile:**
-```
-GET   /profile        → profile.edit
-PATCH /profile        → profile.update
-DELETE /profile       → profile.destroy
-```
-
----
-
-## Technical Implementation
-
-### Actions (Commands)
-
-Actions are service classes that encapsulate business logic:
-
-#### LoanEquipmentAction
-- **File:** `app/Actions/LoanEquipmentAction.php`
-- **Purpose:** Handle equipment loaning
-- **Method:** `execute(Equipment $equipment, User $user, string $loanDate, string $loanExpireDate): Equipment`
-
-#### ReturnEquipmentAction
-- **File:** `app/Actions/ReturnEquipmentAction.php`
-- **Purpose:** Handle equipment returns with conditional status
-- **Method:** `execute(Equipment $equipment, string $returnDate): Equipment`
-
-#### RepairEquipmentAction
-- **File:** `app/Actions/RepairEquipmentAction.php`
-- **Purpose:** Log equipment repairs
-- **Method:** `execute(Equipment $equipment, string $description, int $cost, string $maintenanceDate): MaintenanceRecord`
-
-#### FinishRepairAction
-- **File:** `app/Actions/FinishRepairAction.php`
-- **Purpose:** Complete equipment repairs
-- **Method:** `execute(Equipment $equipment): Equipment`
-
-### Observers (Event Listeners)
-
-Observers react to model events:
-
-#### EquipmentObserver
-- `created()` - Sets default status to AVAILABLE
-- `updated()` - Creates/updates EquipmentHistory on status changes
-
-#### MaintenanceRecordObserver
-- Empty (ready for future audit logging)
-
-#### EquipmentHistoryObserver
-- Empty (ready for future event handling)
-
-#### UserObserver
-- Empty (ready for future user tracking)
-
-### Request Validation
-
-**Equipment Store Request:**
-- `app/Http/Requests/Equipment/EquipmentStoreRequest.php`
-
-**Equipment Update Request:**
-- `app/Http/Requests/Equipment/EquipmentUpdateRequest.php`
-
-**Maintenance Record Requests:**
-- `app/Http/Requests/MaintenanceRecord/MaintenanceRecordStoreRequest.php`
-- `app/Http/Requests/MaintenanceRecord/MaintenanceRecordUpdateRequest.php`
-
-### Controllers
-
-**EquipmentController:**
-- Handles all equipment CRUD operations
-- Implements loan, return, repair, finishRepair actions
-- Filters equipment based on user role
-- Manages modals and form submissions
-
-**Other Controllers:**
-- EquipmentHistoryController
-- MaintenanceRecordController
-- UserController
-- ProfileController
-
-### Frontend Components
-
-**Blade Templates:**
-- `resources/views/equipment/index.blade.php` - Equipment list with modals
-- `resources/views/equipment/show.blade.php` - Equipment detail page with modals
-- `resources/views/equipment/create.blade.php` - Create equipment form
-- `resources/views/equipment/edit.blade.php` - Edit equipment form
-
-**Modals in Index Page:**
-- Loan Equipment Modal
-- Return Equipment Modal
-- Repair Equipment Modal
-
-**Modals in Show Page:**
-- Repair Equipment Modal (with full form)
-
-**Styling:**
-- Tailwind CSS for responsive design
-- Dark mode support throughout
-- Consistent color scheme:
-  - Blue: View action
-  - Green: Edit/Success actions
-  - Red: Delete action
-  - Orange: Repair/Important actions
-  - Yellow: Secondary actions
-
----
-
-## User Workflows
-
-### Manager Workflow: Create & Loan Equipment
-
-**Step 1: Create Equipment**
-```
-1. Navigate to Equipment Management
-2. Click "+ New Equipment"
-3. Fill in equipment details
+1. Click "Equipment" in the navigation
+2. Click "Create Equipment" button
+3. Fill in all required fields:
+   - Brand: Equipment manufacturer/brand
+   - Model: Model number or identifier
+   - Category: Select from (Laptop, Computer, Peripherals, Ergonomics)
+   - Cost: Purchase price
+   - Condition: Select from (New, Used, Broken)
+   - Acquisition Date: Date of purchase
+   - Storage Location: Where it's stored
 4. Click "Create Equipment"
-```
 
-**Step 2: Loan Equipment**
-```
-1. View equipment in list or detail page
+##### Editing Equipment
+
+1. Go to Equipment list
+2. Click the "Edit" button for the equipment
+3. Update desired fields
+4. Click "Save Changes"
+
+##### Deleting Equipment
+
+1. Go to Equipment list
+2. Click the "Delete" button
+3. Confirm the deletion
+
+##### Equipment Actions
+
+**Loan Equipment:**
+1. Click on equipment
 2. Click "Loan" button
-3. Select employee to loan to
-4. Enter loan date and expiration date
+3. Select user to loan to (not just yourself)
+4. Enter loan expiration date
 5. Click "Loan Equipment"
-→ Equipment status: ASSIGNED
-→ EquipmentHistory: Created/Updated
+
+**Log Repair:**
+1. Only visible if equipment condition is "Broken"
+2. Click "Log Repair" button
+3. Equipment status changes to "Repair"
+4. Wait for fix before pressing "Finish Repair"
+
+**Finish Repair:**
+1. Only visible if equipment status is "Repair"
+2. Click "Finish Repair" button
+3. If equipment is assigned to user, returns to "Assigned"
+4. If equipment is not assigned, returns to "Available"
+
+#### User Management
+
+##### Creating Users
+
+1. Click "Users" in the navigation (Manager only)
+2. Click "Create User" button
+3. Fill in the form:
+   - First Name
+   - Last Name
+   - Date of Birth (DD/MM/YYYY)
+   - Email
+   - Password
+   - Role (Manager or Employee)
+4. Click "Create User"
+
+##### Editing Users
+
+1. Go to Users list
+2. Click on a user
+3. Click "Edit" button
+4. Update information
+5. Click "Update User"
+
+##### Viewing User Details
+
+1. Go to Users list
+2. Click on a user
+3. View:
+   - Personal information
+   - All equipment currently assigned
+   - Email and role
+
+##### Deleting Users
+
+1. Go to Users list
+2. Click "Delete" button on user card
+3. Confirm deletion
+
+#### Maintenance Records
+
+##### Creating Maintenance Records
+
+1. Click "Maintenance" in the navigation
+2. Click "Create Maintenance Record" button
+3. Fill in:
+   - Equipment: Select from dropdown
+   - Description: Details of maintenance work
+   - Cost: Maintenance cost
+   - Maintenance Date: Date performed
+4. Click "Create Record"
+
+##### Viewing Maintenance Records
+
+1. Click "Maintenance" in the navigation
+2. View all maintenance records
+3. Click on a record to see details
+4. Equipment brand name is searchable
+
+##### Editing Maintenance Records
+
+1. Go to Maintenance list
+2. Click on the record
+3. Click "Edit"
+4. Update information
+5. Click "Save Changes"
+
+#### Equipment History
+
+##### Viewing Equipment History
+
+1. Click "History" in the navigation (Manager only)
+2. View all equipment assignments and loans
+3. Search by equipment brand name
+4. Click on a record to view:
+   - Complete loan history with dates
+   - All users who have borrowed the equipment
+   - Current loan status
+
+##### Equipment History Data
+
+Each history record shows:
+- Equipment brand and model
+- List of all loan start dates
+- Corresponding loan expiration dates
+- All user IDs who have borrowed the equipment
+- Current status
+
+---
+
+## API Documentation
+
+### Routes
+
+The application provides RESTful routes for all resources:
+
+```
+GET    /equipment                 - List all equipment
+GET    /equipment/{id}            - View equipment details
+POST   /equipment/{id}/loan       - Loan equipment to user
+POST   /equipment/{id}/return     - Return equipment
+POST   /equipment/{id}/repair     - Log equipment repair (Manager)
+POST   /equipment/{id}/finish-repair - Complete repair (Manager)
+
+GET    /users                     - List all users (Manager)
+GET    /users/{id}               - View user details (Manager)
+POST   /users                    - Create new user (Manager)
+PATCH  /users/{id}               - Update user (Manager)
+DELETE /users/{id}               - Delete user (Manager)
+
+GET    /equipmentHistory         - List all equipment history (Manager)
+GET    /equipmentHistory/{id}    - View history record (Manager)
+
+GET    /maintenanceRecord        - List maintenance records (Manager)
+GET    /maintenanceRecord/{id}   - View maintenance record (Manager)
+POST   /maintenanceRecord        - Create maintenance record (Manager)
+PATCH  /maintenanceRecord/{id}   - Update maintenance record (Manager)
+DELETE /maintenanceRecord/{id}   - Delete maintenance record (Manager)
+
+GET    /profile                  - View current user profile
+PATCH  /profile                  - Update current user profile
+DELETE /profile                  - Delete current user account
 ```
 
-### Manager Workflow: Equipment Return & Repair
+### Authentication
 
-**Step 1: Employee Returns Equipment**
+All routes except login/registration require authentication:
+
 ```
-1. Equipment shows status: ASSIGNED
-2. Employee or manager clicks "Return"
-3. Enter return date (can be earlier than due date)
-4. Click "Return Equipment"
-→ If return date = TODAY: status → AVAILABLE
-→ If return date > TODAY: status → ASSIGNED, loan_expire_date updated
-→ EquipmentHistory: loan_expire_date updated
+POST   /login                    - User login
+POST   /register                 - User registration
+POST   /forgot-password          - Password reset request
+POST   /logout                   - User logout
 ```
 
-**Step 2: Equipment Breaks (if broken)**
-```
-1. Manager marks equipment as BROKEN (via edit)
-2. Equipment now visible only to managers
-3. Employees cannot see broken equipment
+### Response Format
+
+All API responses are in JSON format:
+
+**Success Response:**
+```json
+{
+    "success": true,
+    "message": "Action completed successfully",
+    "data": { ... }
+}
 ```
 
-**Step 3: Manager Repairs Equipment**
-```
-1. Navigate to broken equipment (manager only sees it)
-2. Click "Repair" button (on index or show page)
-3. Repair modal opens
-4. Fill in:
-   - Repair description: "Screen replaced"
-   - Cost: 150
-   - Maintenance date: 2026-04-15
-5. Click "Log Repair"
-→ Equipment status: REPAIR
-→ MaintenanceRecord: Created/Updated
-→ "Repair" button: Hidden
-→ "Finish Repair" button: Appears
-```
-
-**Step 4: Complete Repair**
-```
-1. Click "Finish Repair"
-2. Confirm action
-→ Equipment condition: USED
-→ If assigned user: status → ASSIGNED
-→ If no user: status → AVAILABLE
-→ Equipment back in normal workflow
-```
-
-### Employee Workflow: Borrow & Return Equipment
-
-**Step 1: View Available Equipment**
-```
-1. Login as employee
-2. Navigate to Equipment Management
-3. See: Own equipment + Available equipment
-4. Cannot see: BROKEN, REPAIR, LOST equipment
-```
-
-**Step 2: Borrow Equipment**
-```
-1. Find available equipment
-2. Click "Loan" button
-3. Note: Only sees themselves in user dropdown
-4. Enter loan dates
-5. Click "Loan Equipment"
-→ Equipment assigned to them
-→ Status: ASSIGNED
-```
-
-**Step 3: Return Equipment**
-```
-1. Equipment shows "Return" button
-2. Click "Return"
-3. Enter return date
-4. Click "Return Equipment"
-→ If returning today: status → AVAILABLE
-→ If future date: status stays ASSIGNED, expiration updated
-```
-
-### Manager Workflow: Multiple Repairs Same Equipment
-
-**Repair 1:**
-```
-MaintenanceRecord:
-- description: ["Screen replaced"]
-- maintenance_date: ["2026-04-10"]
-- cost: 150
-```
-
-**Repair 2 (same equipment):**
-```
-MaintenanceRecord updated:
-- description: ["Screen replaced", "Battery replaced"]
-- maintenance_date: ["2026-04-10", "2026-04-15"]
-- cost: 350  // 150 + 200
+**Error Response:**
+```json
+{
+    "success": false,
+    "message": "Error description",
+    "errors": { ... }
+}
 ```
 
 ---
 
-## File Structure
+## Testing
 
-```
-BookKeepingPlatform/
-├── app/
-│   ├── Actions/
-│   │   ├── LoanEquipmentAction.php
-│   │   ├── ReturnEquipmentAction.php
-│   │   ├── RepairEquipmentAction.php
-│   │   └── FinishRepairAction.php
-│   ├── Enums/
-│   │   ├── Category.php
-│   │   ├── Condition.php
-│   │   └── Status.php
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── EquipmentController.php
-│   │   │   ├── EquipmentHistoryController.php
-│   │   │   ├── MaintenanceRecordController.php
-│   │   │   ├── UserController.php
-│   │   │   └── ProfileController.php
-│   │   ├── Middleware/
-│   │   │   └── IsManager.php
-│   │   └── Requests/
-│   │       ├── Equipment/
-│   │       │   ├── EquipmentStoreRequest.php
-│   │       │   └── EquipmentUpdateRequest.php
-│   │       └── MaintenanceRecord/
-│   │           ├── MaintenanceRecordStoreRequest.php
-│   │           └── MaintenanceRecordUpdateRequest.php
-│   ├── Models/
-│   │   ├── Equipment.php
-│   │   ├── EquipmentHistory.php
-│   │   ├── MaintenanceRecord.php
-│   │   └── User.php
-│   ├── Observers/
-│   │   ├── EquipmentObserver.php
-│   │   ├── EquipmentHistoryObserver.php
-│   │   ├── MaintenanceRecordObserver.php
-│   │   └── UserObserver.php
-│   └── Providers/
-│       └── AppServiceProvider.php
-├── database/
-│   ├── migrations/
-│   │   ├── 0001_01_01_000000_create_users_table.php
-│   │   ├── 2026_04_15_092313_create_equipment_table.php
-│   │   ├── 2026_04_15_092433_create_maintenance_records_table.php
-│   │   └── 2026_04_15_092453_create_equipment_histories_table.php
-│   ├── factories/
-│   │   ├── EquipmentFactory.php
-│   │   ├── EquipmentHistoryFactory.php
-│   │   ├── MaintenanceRecordFactory.php
-│   │   └── UserFactory.php
-│   └── seeders/
-│       └── DatabaseSeeder.php
-├── resources/
-│   ├── css/
-│   │   └── app.css
-│   ├── js/
-│   │   └── app.js
-│   └── views/
-│       ├── equipment/
-│       │   ├── index.blade.php
-│       │   ├── show.blade.php
-│       │   ├── create.blade.php
-│       │   └── edit.blade.php
-│       ├── maintenanceRecord/
-│       │   ├── index.blade.php
-│       │   ├── show.blade.php
-│       │   ├── create.blade.php
-│       │   └── edit.blade.php
-│       ├── users/
-│       │   ├── index.blade.php
-│       │   ├── show.blade.php
-│       │   ├── create.blade.php
-│       │   └── edit.blade.php
-│       ├── layouts/
-│       │   └── app.blade.php
-│       └── auth/
-│           ├── login.blade.php
-│           ├── register.blade.php
-│           └── forgot-password.blade.php
-├── routes/
-│   ├── web.php
-│   ├── auth.php
-│   └── console.php
-├── config/
-│   ├── app.php
-│   ├── auth.php
-│   ├── database.php
-│   └── ...
-├── storage/
-│   ├── app/
-│   ├── framework/
-│   └── logs/
-├── tests/
-│   ├── Feature/
-│   └── Unit/
-├── public/
-│   ├── index.php
-│   ├── favicon.ico
-│   └── robots.txt
-├── .env
-├── composer.json
-├── package.json
-├── phpunit.xml
-├── tailwind.config.js
-├── vite.config.js
-└── README.md
+### Running Tests
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test file
+php artisan test tests/Feature/EquipmentControllerTest.php
+
+# Run tests with verbose output
+php artisan test --verbose
+
+# Run tests with coverage report
+php artisan test --coverage
 ```
 
----
+### Test Structure
 
-## Key Features Summary
+Tests are organized in two categories:
 
-### ✅ Implemented Features
+**Feature Tests** (`tests/Feature/`):
+- Controller tests
+- End-to-end workflow tests
+- Database integration tests
 
-1. **Role-Based Access Control**
-   - Manager & Employee roles
-   - Equipment visibility filtering
-   - Action availability based on role
+**Unit Tests** (`tests/Unit/`):
+- Action tests
+- Model tests
+- Business logic tests
 
-2. **Equipment Management**
-   - Full CRUD operations (managers only)
-   - Equipment conditions: New, Used, Broken
-   - Equipment statuses: Available, Assigned, Repair, Lost
-   - Equipment categorization
+### Key Test Suites
 
-3. **Equipment Loaning**
-   - Loan equipment to users
-   - Track loan dates and expiration dates
-   - Conditional status changes
-   - Loan history tracking
+```
+Tests/Feature/
+├── EquipmentControllerTest.php
+├── UserControllerTest.php
+├── EquipmentHistoryControllerTest.php
+├── MaintenanceRecordControllerTest.php
+├── ProfileTest.php
+└── AuthenticationTest.php
 
-4. **Equipment Returns**
-   - Return equipment with return date
-   - Early return support (date adjustment)
-   - Conditional status changes based on return date
-   - On-time and late return handling
+Tests/Unit/
+├── Actions/
+│   ├── LoanEquipmentActionTest.php
+│   ├── ReturnEquipmentActionTest.php
+│   ├── RepairEquipmentActionTest.php
+│   └── FinishRepairActionTest.php
+└── Models/
+    ├── EquipmentTest.php
+    ├── UserTest.php
+    └── MaintenanceRecordTest.php
+```
 
-5. **Equipment History**
-   - Track all users who borrowed equipment
-   - Track loan dates and return dates
-   - JSON array storage for multiple loans
-   - Complete audit trail
+### Example Test Cases
 
-6. **Broken Equipment Management**
-   - Hide broken equipment from employees
-   - Manager-only view of broken equipment
-   - Repair initiation
+**Equipment Loan Test:**
+```bash
+php artisan test --filter="loan_equipment"
+```
 
-7. **Equipment Repair Workflow**
-   - Log equipment repairs
-   - Track repair costs and dates
-   - Multiple repairs per equipment
-   - Repair completion status
-   - Condition update to USED after repair
+**User Creation Test:**
+```bash
+php artisan test --filter="create_user"
+```
 
-8. **Maintenance Records**
-   - Create maintenance records during repair
-   - Append to existing records
-   - Track cumulative repair costs
-   - Multiple repairs per equipment
-
-9. **Frontend UI**
-   - Equipment list with filtration
-   - Equipment detail page
-   - Modal-based forms (Loan, Return, Repair)
-   - Dark mode support
-   - Responsive design
-
-10. **Data Persistence**
-    - SQLite database
-    - Proper relationships and foreign keys
-    - JSON fields for array data
-    - Cascade deletes
-
----
-
-## Future Enhancement Ideas
-
-1. **Export Functionality**
-   - Export equipment list to CSV/PDF
-   - Generate repair reports
-   - Export history data
-
-2. **Advanced Reporting**
-   - Equipment usage statistics
-   - Repair cost analysis
-   - Equipment condition trends
-   - User borrowing patterns
-
-3. **Notifications**
-   - Email alerts for overdue equipment
-   - Repair completion notifications
-   - Equipment maintenance reminders
-
-4. **Equipment Tracking**
-   - QR codes for quick equipment lookup
-   - Equipment location tracking
-   - Movement history
-
-5. **Approval Workflow**
-   - Manager approval for loans
-   - Repair approval process
-   - Equipment disposal workflow
-
-6. **Integration**
-   - Inventory system integration
-   - Budget tracking
-   - Asset depreciation tracking
+**Return Equipment Test:**
+```bash
+php artisan test --filter="return_equipment"
+```
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues and Solutions
 
-**Issue: Equipment not appearing in employee list**
-- Check: Equipment condition is not BROKEN
-- Check: Equipment status is AVAILABLE or assigned to user
-- Check: Search filters are not hiding it
+#### 1. "No such column" Database Error
 
-**Issue: Return button not showing**
-- Check: Equipment must be assigned to current user or user is manager
-- Check: Equipment status must be ASSIGNED
+**Problem:** Error about missing database columns
 
-**Issue: Repair button not showing**
-- Check: User must be logged in as Manager
-- Check: Equipment condition must be BROKEN
-- Check: Equipment status must not already be REPAIR
+**Solution:**
+```bash
+php artisan migrate:fresh
+php artisan db:seed
+```
 
-**Issue: EquipmentHistory not updating**
-- Check: Equipment observer is enabled
-- Check: Using save() not saveQuietly() for initial loan
-- Check: Equipment has status change to ASSIGNED
+#### 2. Equipment Not Loaning Properly
+
+**Problem:** Equipment status not changing when loaning
+
+**Ensure:**
+- Equipment status is "Available"
+- Equipment condition is not "Broken"
+- You have selected a user to loan to
+- Expiration date is in the future
+
+#### 3. Password Hash Error
+
+**Problem:** Cannot decrypt or verify password
+
+**Note:** Passwords are one-way hashed using bcrypt. Cannot be decrypted.
+
+**Solution:** Use password reset:
+```bash
+php artisan tinker
+> $user = User::find(1);
+> $user->password = Hash::make('newpassword');
+> $user->save();
+```
+
+#### 4. Equipment History Not Updating
+
+**Problem:** History not recording loans
+
+**Solution:**
+- Check that EquipmentHistory observer is loaded
+- Verify database observers are registered in `AppServiceProvider`
+- Run migration to ensure table structure is correct
+
+**Debug:**
+```bash
+php artisan tinker
+> Equipment::with('history')->first();
+```
+
+#### 5. Role Permissions Not Working
+
+**Problem:** Users accessing pages they shouldn't
+
+**Verify:**
+- Middleware is registered in `app/Http/Kernel.php`
+- Routes have correct middleware applied
+- User role is set correctly (Manager or Employee)
+
+```
+
+#### 8. Email Verification Not Working
+
+**Problem:** Cannot verify email
+
+**Solution:** Check mail configuration in `.env`:
+```
+MAIL_DRIVER=log  # For testing
+```
+
+In production, configure actual mail service (SendGrid, Mailgun, etc.)
 
 ---
 
-## Version History
+## Development
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-04-17 | Initial implementation with complete loan/return/repair workflow |
+### Project Structure
+
+```
+BookKeepingPlatform/
+├── app/
+│   ├── Actions/              # Business logic actions
+│   ├── Enums/               # Status, Condition, Category enums
+│   ├── Http/
+│   │   ├── Controllers/     # Request handlers
+│   │   ├── Middleware/      # Auth & permission middleware
+│   │   └── Requests/        # Form validation requests
+│   ├── Models/              # Database models
+│   └── Observers/           # Model event observers
+├── database/
+│   ├── factories/           # Model factories for testing
+│   ├── migrations/          # Database schema
+│   └── seeders/             # Database seeders
+├── resources/
+│   ├── css/                 # Stylesheets
+│   ├── js/                  # JavaScript files
+│   └── views/               # Blade templates
+├── routes/                  # Route definitions
+└── tests/                   # Test suites
+```
+```
 
 ---
 
-## Support & Contact
+## Security Considerations
 
-For issues, feature requests, or contributions, please refer to the project documentation or contact the development team.
+- ✅ All passwords are hashed using bcrypt
+- ✅ CSRF tokens protect all forms
+- ✅ SQL injection prevented through Eloquent ORM
+- ✅ XSS protection through Blade templating
+- ✅ Role-based access control enforced
+- ✅ Email verification for new accounts
+- ✅ Secure session management
 
 ---
 
-**Last Updated:** April 17, 2026  
-**Project Status:** Active Development  
-**Framework:** Laravel 10+  
-**PHP Version:** 8.1+
+## Support & Documentation
+
+### Laravel Documentation
+- [Laravel Official Docs](https://laravel.com/docs)
+- [Laravel Database](https://laravel.com/docs/eloquent)
+- [Laravel Validation](https://laravel.com/docs/validation)
+
+### Project Contacts
+For issues or questions about this project, refer to the project repository or documentation.
+
+---
+
+---
+
+## Changelog
+
+### Version 1.0 (Current)
+- Initial release
+- Equipment CRUD operations
+- Equipment loaning system
+- Maintenance record tracking
+- Equipment history tracking
+- User management with roles
+- Authentication with email verification
+- Role-based access control
+- Comprehensive test suite
+
+---
+
+## Future Enhancements
+
+---
+
+## Contributing
+
+To contribute to this project:
+
+1. Create a feature branch: `git checkout -b feature/new-feature`
+2. Commit your changes: `git commit -am 'Add new feature'`
+3. Push to the branch: `git push origin feature/new-feature`
+4. Submit a pull request
+
+---
+
+**Last Updated:** April 2026
+**Version:** 1.0.0
 
