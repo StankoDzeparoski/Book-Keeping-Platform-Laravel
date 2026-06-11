@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookkeeping-app
+  namespace: bookkeeping-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookkeeping-app
+  template:
+    metadata:
+      labels:
+        app: bookkeeping-app
+    spec:
+      containers:
+        - name: nginx
+          image: ghcr.io/your-github-username/your-repository/nginx:latest
+          imagePullPolicy: Always
+          env:
+            - name: PHP_FPM_HOST
+              value: "127.0.0.1"
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+        - name: app
+          image: ghcr.io/your-github-username/your-repository/app:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: bookkeeping-app-config
+            - secretRef:
+                name: bookkeeping-app-secret
+          ports:
+            - name: fpm
+              containerPort: 9000

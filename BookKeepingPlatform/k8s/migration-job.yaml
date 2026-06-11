@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bookkeeping-migrate
+  namespace: bookkeeping-platform
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: ghcr.io/your-github-username/your-repository/app:latest
+          imagePullPolicy: Always
+          args:
+            - php
+            - artisan
+            - migrate
+            - --force
+          envFrom:
+            - configMapRef:
+                name: bookkeeping-app-config
+            - secretRef:
+                name: bookkeeping-app-secret
