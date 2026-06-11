@@ -1,966 +1,527 @@
-# BookKeeping Platform - Equipment Management System
+# BookKeeping Platform
 
-A comprehensive Laravel-based equipment management system designed to track, loan, maintain, and manage organizational equipment across different users and departments.
+BookKeeping Platform is a Laravel-based equipment management system for tracking organizational IT and office equipment, equipment loans, maintenance records, user assignments, and equipment history.
 
-## Table of Contents
+The project was upgraded for a DevOps deployment workflow:
 
-- [Overview](#overview)
-- [Features](#features)
-- [System Requirements](#system-requirements)
-- [Installation](#installation)
-- [Initial Setup](#initial-setup)
-- [User Roles and Permissions](#user-roles-and-permissions)
-- [Core Modules](#core-modules)
-- [Data Models](#data-models)
-- [Usage Guide](#usage-guide)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
+- Laravel 12 application served by PHP-FPM
+- Nginx web server in front of PHP-FPM
+- PostgreSQL database instead of SQLite
+- Docker image build for the Laravel app and Nginx
+- Docker Compose orchestration for local execution
+- GitHub Actions CI pipeline that publishes images to GitHub Container Registry
+- Kubernetes manifests for Deployment, Service, Ingress, ConfigMap, Secret, PostgreSQL StatefulSet, PVC, migration Job, and seed Job
 
----
-
-## Overview
-
-The BookKeeping Platform is an equipment management system built with Laravel 12 that allows organizations to:
-- **Track Equipment**: Maintain a comprehensive database of all organizational equipment
-- **Manage Loans**: Handle equipment loans with expiration dates and automatic status tracking
-- **Monitor Maintenance**: Log and track maintenance records for all equipment
-- **Maintain History**: Keep detailed historical records of equipment assignments and loans
-- **Role-Based Access**: Enforce different permission levels for Managers and Employees
-
-The system is designed with a modern, responsive user interface using Laravel Breeze authentication and Tailwind CSS styling.
-
----
-
-## Features
-
-### Equipment Management
-- ✅ **Create Equipment**: Add new equipment with detailed specifications (Manager only)
-- ✅ **View Equipment**: Browse all equipment with filtering and search capabilities
-- ✅ **Edit Equipment**: Update![img.png](img.png) equipment details (Manager only)
-- ✅ **Delete Equipment**: Remove equipment from the system (Manager only)
-- ✅ **Equipment Status Tracking**: Monitor equipment status (Available, Assigned, Repair, Lost)
-- ✅ **Condition Tracking**: Track equipment condition (New, Used, Broken)
-
-### Equipment Loaning
-- ✅ **Loan Equipment**: Employees can loan available equipment with due dates
-- ✅ **Return Equipment**: Return loaned equipment to available status
-- ✅ **Early Return**: Return equipment before the loan expiration date
-- ✅ **History Tracking**: Automatic tracking of all loan transactions
-- ✅ **Smart Loan Assignment**: Employees can only loan to themselves; Managers can loan to any user
-
-### Equipment Maintenance
-- ✅ **Repair Actions**: Log equipment repairs with costs and descriptions
-- ✅ **Maintenance Records**: Track all maintenance history
-- ✅ **Repair Status**: Equipment status changes to "Repair" when logged for maintenance
-- ✅ **Finish Repair**: Complete repair and return equipment to Available/Assigned status
-
-### Equipment History & Audit Trail
-- ✅ **Complete History**: Maintain detailed records of all equipment assignments
-- ✅ **Loan History**: Track all loans with start and end dates
-- ✅ **Employee Assignment**: See which employees have had which equipment
-- ✅ **Timeline View**: View complete timeline of equipment movements
-
-### User Management
-- ✅ **User Profiles**: Create and manage user profiles with personal information
-- ✅ **Role Assignment**: Assign roles (Manager or Employee) to users
-- ✅ **Date of Birth**: Track employee date of birth
-- ✅ **View Assigned Equipment**: See all equipment currently assigned to a user
-
-### Authentication & Security
-- ✅ **User Registration**: New users can create accounts
-- ✅ **Email Verification**: Verify user email addresses
-- ✅ **Password Hashing**: Secure password storage using bcrypt
-- ✅ **Session Management**: Secure session handling
-- ✅ **CSRF Protection**: Protection against cross-site request forgery
-
----
-
-## System Requirements
-
-- **PHP**: 8.2 or higher
-- **Laravel**: 12.0 or higher
-- **Database**: SQLite (default) or MySQL/PostgreSQL
-- **Node.js**: 14.0 or higher (for frontend compilation)
-- **Composer**: Latest version
-- **npm**: 6.0 or higher
-
-### Required Extensions
-- PHP JSON extension
-- PHP PDO extension
-- PHP Tokenizer extension
-- PHP XML extension
-
----
-
-## Installation
-
-### 1. Clone the Repository
+If you cloned the GitHub repository root and the Laravel project is inside `BookKeepingPlatform/`, run:
 
 ```bash
-git clone <repository-url>
 cd BookKeepingPlatform
 ```
 
-### 2. Install PHP Dependencies
+All commands below assume you are inside the Laravel project directory.
+
+## Architecture
+
+| Component | Docker Compose | Kubernetes |
+| --- | --- | --- |
+| Laravel PHP-FPM | `app` service | `app` container in `bookkeeping-app` Deployment |
+| Nginx | `nginx` service | `nginx` container in `bookkeeping-app` Deployment |
+| PostgreSQL | `database` service | `bookkeeping-postgres` StatefulSet |
+| Laravel config | Compose environment and `.env` | ConfigMap |
+| Secrets | `.env` | Secret |
+| Database storage | Docker named volume | PersistentVolumeClaim |
+| External access | `localhost:8080` | Ingress `bookkeeping.local` |
+| Migrations | `docker compose exec` | Kubernetes Job |
+| Seed data | `docker compose exec` | Kubernetes Job |
+| Image build | Local Docker / GitHub Actions | Pulled from GHCR |
+
+## Main Features
+
+- Equipment CRUD management
+- Equipment loan and return workflow
+- Equipment repair and maintenance tracking
+- Equipment assignment history
+- User management
+- Laravel Breeze authentication
+- Role fields for Manager and Employee users
+- PostgreSQL-backed sessions, cache, queue, and application data
+
+## Technology Stack
+
+- Laravel 12
+- PHP 8.3
+- Blade and Tailwind CSS
+- PostgreSQL 16
+- Nginx
+- Docker
+- Docker Compose
+- GitHub Actions
+- GitHub Container Registry
+- Kubernetes
+- Ingress Nginx Controller
+
+## Repository Files Added For Deployment
+
+- `Dockerfile`: multi-stage Docker build for Composer dependencies, Vite assets, Laravel PHP-FPM, and Nginx
+- `docker-compose.yml`: local three-service stack with Nginx, Laravel app, and PostgreSQL
+- `docker/nginx/default.conf.template`: Nginx virtual host configuration
+- `docker/php/entrypoint.sh`: waits for PostgreSQL and starts Laravel PHP-FPM
+- `.github/workflows/container-images.yml`: builds and publishes Docker images to GHCR
+- `k8s/`: Kubernetes manifests
+- `DEPLOYMENT.md`: extra deployment notes and commands
+
+## Environment
+
+The app now uses PostgreSQL by default.
+
+Important local `.env` values:
+
+```env
+APP_NAME="BookKeeping Platform"
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=bookkeeping
+DB_USERNAME=bookkeeping
+DB_PASSWORD=bookkeeping
+```
+
+Docker Compose overrides `DB_HOST` to `database` internally.
+
+## Run With Docker Compose
+
+Prerequisites:
+
+- Docker Desktop
+- Git
+
+Build and start the stack:
+
+```bash
+docker compose build app nginx
+docker compose up -d
+```
+
+Run migrations:
+
+```bash
+docker compose exec app php artisan migrate --force
+```
+
+Seed the database:
+
+```bash
+docker compose exec app php artisan db:seed --force
+```
+
+Reset and seed from scratch:
+
+```bash
+docker compose exec app php artisan migrate:fresh --seed --force
+```
+
+Open the app:
+
+```text
+http://localhost:8080
+```
+
+Show that Docker Compose is working:
+
+```bash
+docker compose ps
+docker compose logs app --tail=50
+docker compose logs nginx --tail=50
+docker compose exec app php artisan migrate:status
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+Stop the stack and remove the PostgreSQL volume:
+
+```bash
+docker compose down -v
+```
+
+Use `down -v` only when you intentionally want to delete the local Compose database.
+
+## Demo Users
+
+After seeding, these users are available:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Manager | `manager@example.com` | `password` |
+| Employee | `test@example.com` | `password` |
+
+## User Roles
+
+### Manager
+
+Managers have full access to the equipment management workflow:
+
+- Create, edit, view, and delete equipment
+- View all equipment in the system
+- Loan equipment to any user
+- Return equipment
+- Mark equipment for repair
+- Finish equipment repair
+- View equipment history
+- Create, view, edit, and delete maintenance records
+- Create, view, edit, and delete users
+- Assign user roles
+- View assigned equipment for each user
+
+### Employee
+
+Employees have limited access focused on their own equipment usage:
+
+- View available equipment
+- View equipment currently assigned to them
+- Loan available equipment to themselves
+- Return equipment they have loaned
+- View and update their own profile
+
+Employees do not manage users, maintenance records, or full equipment history.
+
+## GitHub Actions And GHCR
+
+The workflow at `.github/workflows/container-images.yml` builds and publishes two images:
+
+```text
+ghcr.io/stankodzeparoski/book-keeping-platform-laravel/app:latest
+ghcr.io/stankodzeparoski/book-keeping-platform-laravel/nginx:latest
+```
+
+The workflow runs on pushes to:
+
+```text
+KIIUprades
+KIIUpgrades
+```
+
+It can also be started manually from:
+
+```text
+GitHub repository -> Actions -> Build and Publish Container Images -> Run workflow
+```
+
+If the workflow cannot push packages, enable write permissions:
+
+```text
+Repository -> Settings -> Actions -> General -> Workflow permissions -> Read and write permissions
+```
+
+If the Kubernetes cluster cannot pull the GHCR images, make the GitHub packages public from the repository package settings.
+
+## Kubernetes Deployment
+
+Prerequisites:
+
+- Docker Desktop with Kubernetes enabled
+- `kubectl`
+- Ingress Nginx Controller
+
+Enable Kubernetes:
+
+```text
+Docker Desktop -> Settings -> Kubernetes -> Enable Kubernetes
+```
+
+Verify the cluster:
+
+```bash
+kubectl config use-context docker-desktop
+kubectl get nodes
+```
+
+Install Ingress Nginx Controller:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/cloud/deploy.yaml
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+```
+
+Apply the Kubernetes manifests:
+
+```bash
+kubectl apply -k k8s
+```
+
+The manifests create:
+
+- Namespace: `bookkeeping-platform`
+- ConfigMap: `bookkeeping-app-config`
+- Secret: `bookkeeping-app-secret`
+- Deployment: `bookkeeping-app`
+- Service: `bookkeeping-app`
+- Ingress: `bookkeeping-app`
+- PostgreSQL Service: `bookkeeping-postgres`
+- PostgreSQL StatefulSet: `bookkeeping-postgres`
+- PostgreSQL PVC: `postgres-data-bookkeeping-postgres-0`
+- Migration Job: `bookkeeping-migrate`
+
+Check the deployment:
+
+```bash
+kubectl get pods -n bookkeeping-platform
+kubectl get svc -n bookkeeping-platform
+kubectl get ingress -n bookkeeping-platform
+kubectl get pvc -n bookkeeping-platform
+kubectl logs job/bookkeeping-migrate -n bookkeeping-platform
+```
+
+Expected state:
+
+```text
+bookkeeping-app       2/2 Running
+bookkeeping-postgres  1/1 Running
+bookkeeping-migrate   0/1 Completed
+PVC                   Bound
+Ingress               bookkeeping.local
+```
+
+The migration pod showing `0/1 Completed` is correct. It is a Kubernetes Job, so it runs once and exits after the migrations finish.
+
+## Kubernetes Database Seeding
+
+Run the seed Job:
+
+```bash
+kubectl apply -f k8s/seed-job.yaml
+kubectl logs job/bookkeeping-seed -n bookkeeping-platform
+```
+
+Check it:
+
+```bash
+kubectl get job bookkeeping-seed -n bookkeeping-platform
+kubectl get pods -n bookkeeping-platform
+```
+
+If you need to rerun seeding, delete and recreate the Job:
+
+```bash
+kubectl delete job bookkeeping-seed -n bookkeeping-platform
+kubectl apply -f k8s/seed-job.yaml
+kubectl logs job/bookkeeping-seed -n bookkeeping-platform
+```
+
+Reset and seed the Kubernetes database from the app container:
+
+```bash
+kubectl exec deploy/bookkeeping-app -n bookkeeping-platform -c app -- php artisan migrate:fresh --seed --force
+```
+
+## Access The Kubernetes App
+
+For Ingress access on Docker Desktop, add this line to your Windows hosts file:
+
+```text
+127.0.0.1 bookkeeping.local
+```
+
+Hosts file path:
+
+```text
+C:\Windows\System32\drivers\etc\hosts
+```
+
+Open:
+
+```text
+http://bookkeeping.local
+```
+
+Alternative access with port-forwarding:
+
+```bash
+kubectl port-forward svc/bookkeeping-app 8080:80 -n bookkeeping-platform
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+## Useful Kubernetes Commands
+
+Describe the app pod:
+
+```bash
+kubectl describe pod -n bookkeeping-platform -l app=bookkeeping-app
+```
+
+View Laravel PHP-FPM logs:
+
+```bash
+kubectl logs -n bookkeeping-platform -l app=bookkeeping-app -c app
+```
+
+View Nginx logs:
+
+```bash
+kubectl logs -n bookkeeping-platform -l app=bookkeeping-app -c nginx
+```
+
+View PostgreSQL logs:
+
+```bash
+kubectl logs statefulset/bookkeeping-postgres -n bookkeeping-platform
+```
+
+Delete the Kubernetes deployment:
+
+```bash
+kubectl delete namespace bookkeeping-platform
+```
+
+Deleting the namespace removes the application resources in that namespace, including the local Docker Desktop PVC.
+
+## Local Non-Docker Development
+
+Docker Compose is the recommended local path for this project. If you still want to run Laravel directly on the host machine, install PHP, Composer, Node.js, npm, and PostgreSQL, then run:
 
 ```bash
 composer install
-```
-
-### 3. Configure Environment
-
-```bash
+npm install
 cp .env.example .env
 php artisan key:generate
-```
-
-Edit `.env` file and configure:
-- Database settings
-- App name and URL
-- Mail configuration (optional)
-
-### 4. Create Database
-
-For SQLite (default):
-```bash
-touch database/database.sqlite
-```
-
-For MySQL, create a database and update `.env`:
-```
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=bookkeeping_platform
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-### 5. Install Frontend Dependencies
-
-```bash
-npm install
-```
-
-### 6. Run Migrations and Seeders
-
-```bash
-php artisan migrate
-php artisan db:seed
-```
-
-This will:
-- Create all required database tables
-- Seed initial test data with sample equipment, users, and maintenance records
-
-### 7. Build Frontend Assets
-
-```bash
+php artisan migrate --force
 npm run dev
-```
-
-Or for production:
-```bash
-npm run build
-```
-
-### 8. Start Development Server
-
-```bash
 php artisan serve
 ```
 
-The application will be available at `http://127.0.0.1:8000`
+The direct local app is available at:
 
-### Quick Setup Command
-
-Alternatively, run the composer setup command:
-```bash
-composer run setup
+```text
+http://127.0.0.1:8000
 ```
-
----
-
-## Initial Setup
-
-### Default Test Users
-
-The database seeder creates the following test users:
-
-**Manager Account:**
-- Email: `manager@example.com`
-- Password: `password`
-
-**Employee Accounts:**
-- Email: `test@example.com`
-- Password: `password`
-
-### Create New Users
-
-1. Navigate to Users management (Manager only)
-2. Click "Create User"
-3. Fill in the required information:
-   - First Name
-   - Last Name
-   - Date of Birth (DD/MM/YYYY format)
-   - Email
-   - Password
-   - Role (Manager or Employee)
-4. Click "Create"
-
-### Login
-
-1. Visit `http://127.0.0.1:8000/login`
-2. Enter email and password
-3. Click "Sign in"
-
----
-
-## User Roles and Permissions
-
-### Manager Role
-
-Managers have full system access and can:
-
-**Equipment Management:**
-- ✅ Create new equipment
-- ✅ Edit equipment details
-- ✅ Delete equipment
-- ✅ View all equipment in the system
-- ✅ Repair equipment and mark as "Repair"
-- ✅ Finish repairs and return equipment to "Available" or "Assigned" status
-- ✅ Loan equipment to any user
-- ✅ Log repairs and maintenance
-
-**User Management:**
-- ✅ View all users
-- ✅ Create new user accounts
-- ✅ Edit user information
-- ✅ Delete user accounts
-- ✅ Assign roles
-
-**Reports & History:**
-- ✅ View complete equipment history
-- ✅ View all maintenance records
-- ✅ Access audit trails
-- ✅ View all historical data
-
-**Navigation:**
-- Has access to all menu items
-
-### Employee Role
-
-Employees have limited access and can:
-
-**Equipment Management:**
-- ✅ View available equipment
-- ✅ View equipment assigned to them
-- ✅ Loan available equipment (to themselves only)
-- ✅ Return equipment they have loaned
-- ❌ Create, edit, or delete equipment
-- ❌ Repair equipment
-- ❌ View equipment history or maintenance records
-
-**Restrictions:**
-- Cannot access user management
-- Cannot view equipment history
-- Cannot access maintenance records
-- Cannot modify other users' equipment
-- Cannot access manager-only features
-
-**Navigation:**
-- Limited menu items (Equipment only)
-- History, Maintenance, and Users tabs are hidden
-
----
-
-## Core Modules
-
-### 1. Equipment Module
-
-**Database Table**: `equipment`
-
-Manages all organizational equipment with comprehensive tracking.
-
-**Key Fields:**
-- `id`: Unique identifier
-- `brand`: Equipment brand/manufacturer
-- `model`: Equipment model number or VIN
-- `category`: Type of equipment (Laptop, Computer, Peripherals, Ergonomics)
-- `cost`: Purchase price
-- `condition`: Current physical condition (New, Used, Broken)
-- `status`: Operational status (Available, Assigned, Repair, Lost)
-- `acquisition_date`: Date equipment was purchased
-- `loan_date`: Current loan start date (if loaned)
-- `loan_expire_date`: Current loan expiration date
-- `storage_location`: Physical storage location
-- `user_id`: Currently assigned user ID (if loaned)
-
-**Status Workflow:**
-```
-Available (initial) 
-    ↓
-    ├→ Loan → Assigned
-    │          ├→ Return → Available
-    │          └→ Early Return → Available
-    │
-    ├→ Repair (Manager) → Repair
-    │                     └→ Finish Repair → Available or Assigned
-    │
-    └→ Lost (if lost)
-```
-
-### 2. Equipment History Module
-
-**Database Table**: `equipment_histories`
-
-Maintains complete audit trail of equipment assignments and loans.
-
-**Key Fields:**
-- `id`: Unique identifier
-- `equipment_id`: Reference to equipment
-- `loan_dates`: Array of loan start dates
-- `loan_expire_dates`: Array of corresponding expiration dates
-- `user_ids`: Array of user IDs who have borrowed the equipment
-
-**Purpose:**
-- Track all past assignments
-- Maintain loan history
-- Generate equipment usage reports
-- Audit trail for compliance
-
-**Data Format:**
-Stores arrays of dates and user IDs to track complete history:
-```php
-[
-    'loan_dates' => ['2026-04-10', '2026-04-15', '2026-04-20'],
-    'loan_expire_dates' => ['2026-04-20', '2026-04-25', '2026-04-30'],
-    'user_ids' => [1, 2, 3]
-]
-```
-
-### 3. Maintenance Record Module
-
-**Database Table**: `maintenance_records`
-
-Tracks all equipment maintenance, repairs, and service records.
-
-**Key Fields:**
-- `id`: Unique identifier
-- `equipment_id`: Reference to equipment
-- `description`: Maintenance work performed
-- `cost`: Maintenance cost
-- `maintenance_date`: Date of maintenance
-
-**Purpose:**
-- Log all repairs and maintenance
-- Track maintenance costs
-- Generate service history reports
-- Monitor equipment reliability
-
-**Typical Uses:**
-- Recording hardware repairs
-- Logging software updates
-- Tracking professional maintenance services
-- Recording preventive maintenance
-
-### 4. User Module
-
-**Database Table**: `users`
-
-Manages user accounts with role-based permissions.
-
-**Key Fields:**
-- `id`: Unique identifier
-- `name`: First name
-- `surname`: Last name
-- `dob`: Date of birth (DD/MM/YYYY format)
-- `email`: Email address (unique)
-- `password`: Hashed password
-- `email_verified_at`: Email verification timestamp
-- `role`: User role (Manager or Employee)
-
-**Relationships:**
-- Has many Equipment records (equipment they have borrowed)
-- Can have multiple equipment assignments
-
----
-
-## Data Models
-
-### Equipment Model
-
-```php
-class Equipment {
-    - id: integer (primary key)
-    - brand: string
-    - model: string
-    - category: enum (Laptop|Computer|Peripherals|Ergonomics)
-    - cost: integer (in currency units)
-    - condition: enum (new|used|broken)
-    - status: enum (Available|Assigned|Repair|Lost)
-    - acquisition_date: date
-    - loan_date: nullable date
-    - loan_expire_date: nullable date
-    - storage_location: string
-    - user_id: nullable foreign key (users)
-    
-    Relationships:
-    - belongsTo: User
-    - hasMany: MaintenanceRecord
-    - hasMany: EquipmentHistory
-}
-```
-
-### User Model
-
-```php
-class User {
-    - id: integer (primary key)
-    - name: string
-    - surname: string
-    - dob: string (date of birth)
-    - email: string (unique)
-    - email_verified_at: nullable timestamp
-    - password: string (hashed)
-    - role: string (Manager|Employee)
-    - created_at: timestamp
-    - updated_at: timestamp
-    
-    Relationships:
-    - hasMany: Equipment
-    
-    Methods:
-    - isManager(): bool
-    - isEmployee(): bool
-}
-```
-
-### EquipmentHistory Model
-
-```php
-class EquipmentHistory {
-    - id: integer (primary key)
-    - equipment_id: foreign key (equipment)
-    - loan_dates: array (list of loan dates)
-    - loan_expire_dates: array (list of expiration dates)
-    - user_ids: array (list of user IDs)
-    - created_at: timestamp
-    - updated_at: timestamp
-    
-    Relationships:
-    - belongsTo: Equipment
-}
-```
-
-### MaintenanceRecord Model
-
-```php
-class MaintenanceRecord {
-    - id: integer (primary key)
-    - equipment_id: foreign key (equipment)
-    - description: text
-    - cost: integer
-    - maintenance_date: date
-    - created_at: timestamp
-    - updated_at: timestamp
-    
-    Relationships:
-    - belongsTo: Equipment
-}
-```
-
----
-
-## Usage Guide
-
-### For Employees
-
-#### Viewing Available Equipment
-
-1. Login with your employee credentials
-2. Click "Equipment" in the navigation menu
-3. You will see:
-   - Equipment assigned to you
-   - Available equipment you can loan
-4. Use the search bar to find specific equipment by brand name
-
-#### Loaning Equipment
-
-1. Click on available equipment
-2. Click the "Loan" button
-3. You will be automatically selected as the recipient
-4. Enter the loan expiration date
-5. Click "Loan Equipment"
-6. The equipment status changes to "Assigned"
-7. You will see the equipment in your list with the loan dates
-
-#### Returning Equipment
-
-1. Click on equipment you have loaned
-2. Click the "Return" button
-3. Enter the return date (defaults to today)
-4. Click "Return Equipment"
-5. Equipment becomes available again
-6. The loan is recorded in the equipment history
-7. You can now loan other equipment
-
-#### Viewing Your Profile
-
-1. Click your name in the top-right corner
-2. Select "Profile"
-3. View your personal information
-4. Update your email (if needed)
-5. Change your password
-
-### For Managers
-
-#### Equipment Management
-
-##### Creating Equipment
-
-1. Click "Equipment" in the navigation
-2. Click "Create Equipment" button
-3. Fill in all required fields:
-   - Brand: Equipment manufacturer/brand
-   - Model: Model number or identifier
-   - Category: Select from (Laptop, Computer, Peripherals, Ergonomics)
-   - Cost: Purchase price
-   - Condition: Select from (New, Used, Broken)
-   - Acquisition Date: Date of purchase
-   - Storage Location: Where it's stored
-4. Click "Create Equipment"
-
-##### Editing Equipment
-
-1. Go to Equipment list
-2. Click the "Edit" button for the equipment
-3. Update desired fields
-4. Click "Save Changes"
-
-##### Deleting Equipment
-
-1. Go to Equipment list
-2. Click the "Delete" button
-3. Confirm the deletion
-
-##### Equipment Actions
-
-**Loan Equipment:**
-1. Click on equipment
-2. Click "Loan" button
-3. Select user to loan to (not just yourself)
-4. Enter loan expiration date
-5. Click "Loan Equipment"
-
-**Log Repair:**
-1. Only visible if equipment condition is "Broken"
-2. Click "Log Repair" button
-3. Equipment status changes to "Repair"
-4. Wait for fix before pressing "Finish Repair"
-
-**Finish Repair:**
-1. Only visible if equipment status is "Repair"
-2. Click "Finish Repair" button
-3. If equipment is assigned to user, returns to "Assigned"
-4. If equipment is not assigned, returns to "Available"
-
-#### User Management
-
-##### Creating Users
-
-1. Click "Users" in the navigation (Manager only)
-2. Click "Create User" button
-3. Fill in the form:
-   - First Name
-   - Last Name
-   - Date of Birth (DD/MM/YYYY)
-   - Email
-   - Password
-   - Role (Manager or Employee)
-4. Click "Create User"
-
-##### Editing Users
-
-1. Go to Users list
-2. Click on a user
-3. Click "Edit" button
-4. Update information
-5. Click "Update User"
-
-##### Viewing User Details
-
-1. Go to Users list
-2. Click on a user
-3. View:
-   - Personal information
-   - All equipment currently assigned
-   - Email and role
-
-##### Deleting Users
-
-1. Go to Users list
-2. Click "Delete" button on user card
-3. Confirm deletion
-
-#### Maintenance Records
-
-##### Creating Maintenance Records
-
-1. Click "Maintenance" in the navigation
-2. Click "Create Maintenance Record" button
-3. Fill in:
-   - Equipment: Select from dropdown
-   - Description: Details of maintenance work
-   - Cost: Maintenance cost
-   - Maintenance Date: Date performed
-4. Click "Create Record"
-
-##### Viewing Maintenance Records
-
-1. Click "Maintenance" in the navigation
-2. View all maintenance records
-3. Click on a record to see details
-4. Equipment brand name is searchable
-
-##### Editing Maintenance Records
-
-1. Go to Maintenance list
-2. Click on the record
-3. Click "Edit"
-4. Update information
-5. Click "Save Changes"
-
-#### Equipment History
-
-##### Viewing Equipment History
-
-1. Click "History" in the navigation (Manager only)
-2. View all equipment assignments and loans
-3. Search by equipment brand name
-4. Click on a record to view:
-   - Complete loan history with dates
-   - All users who have borrowed the equipment
-   - Current loan status
-
-##### Equipment History Data
-
-Each history record shows:
-- Equipment brand and model
-- List of all loan start dates
-- Corresponding loan expiration dates
-- All user IDs who have borrowed the equipment
-- Current status
-
----
-
-## API Documentation
-
-### Routes
-
-The application provides RESTful routes for all resources:
-
-```
-GET    /equipment                 - List all equipment
-GET    /equipment/{id}            - View equipment details
-POST   /equipment/{id}/loan       - Loan equipment to user
-POST   /equipment/{id}/return     - Return equipment
-POST   /equipment/{id}/repair     - Log equipment repair (Manager)
-POST   /equipment/{id}/finish-repair - Complete repair (Manager)
-
-GET    /users                     - List all users (Manager)
-GET    /users/{id}               - View user details (Manager)
-POST   /users                    - Create new user (Manager)
-PATCH  /users/{id}               - Update user (Manager)
-DELETE /users/{id}               - Delete user (Manager)
-
-GET    /equipmentHistory         - List all equipment history (Manager)
-GET    /equipmentHistory/{id}    - View history record (Manager)
-
-GET    /maintenanceRecord        - List maintenance records (Manager)
-GET    /maintenanceRecord/{id}   - View maintenance record (Manager)
-POST   /maintenanceRecord        - Create maintenance record (Manager)
-PATCH  /maintenanceRecord/{id}   - Update maintenance record (Manager)
-DELETE /maintenanceRecord/{id}   - Delete maintenance record (Manager)
-
-GET    /profile                  - View current user profile
-PATCH  /profile                  - Update current user profile
-DELETE /profile                  - Delete current user account
-```
-
-### Authentication
-
-All routes except login/registration require authentication:
-
-```
-POST   /login                    - User login
-POST   /register                 - User registration
-POST   /forgot-password          - Password reset request
-POST   /logout                   - User logout
-```
-
-### Response Format
-
-All API responses are in JSON format:
-
-**Success Response:**
-```json
-{
-    "success": true,
-    "message": "Action completed successfully",
-    "data": { ... }
-}
-```
-
-**Error Response:**
-```json
-{
-    "success": false,
-    "message": "Error description",
-    "errors": { ... }
-}
-```
-
----
 
 ## Testing
 
-### Running Tests
+Run tests locally if PHP and Composer are installed:
 
 ```bash
-# Run all tests
 php artisan test
-
-# Run specific test file
-php artisan test tests/Feature/EquipmentControllerTest.php
-
-# Run tests with verbose output
-php artisan test --verbose
-
-# Run tests with coverage report
-php artisan test --coverage
 ```
+
+Run tests inside Docker:
+
+```bash
+docker compose exec app php artisan test
+```
+
+The PHPUnit configuration uses in-memory SQLite for tests, while the application runtime uses PostgreSQL.
 
 ### Test Structure
 
-Tests are organized in two categories:
+Feature tests are located in `tests/Feature` and cover HTTP/controller-level behavior:
 
-**Feature Tests** (`tests/Feature/`):
-- Controller tests
-- End-to-end workflow tests
-- Database integration tests
+- `tests/Feature/Auth`: authentication, registration, password reset, and email verification tests
+- `tests/Feature/Controllers/EquipmentControllerTest.php`: equipment controller workflows
+- `tests/Feature/Controllers/UserControllerTest.php`: user management workflows
+- `tests/Feature/Controllers/MaintenanceRecordControllerTest.php`: maintenance record workflows
+- `tests/Feature/Controllers/EquipmentHistoryControllerTest.php`: equipment history workflows
+- `tests/Feature/Controllers/ProfileControllerTest.php`: profile update workflows
+- `tests/Feature/ProfileTest.php`: profile feature behavior
 
-**Unit Tests** (`tests/Unit/`):
-- Action tests
-- Model tests
-- Business logic tests
+Unit tests are located in `tests/Unit` and cover isolated application logic:
 
-### Key Test Suites
+- `tests/Unit/Actions/LoanEquipmentActionTest.php`
+- `tests/Unit/Actions/ReturnEquipmentActionTest.php`
+- `tests/Unit/Actions/RepairEquipmentActionTest.php`
+- `tests/Unit/Actions/FinishRepairActionTest.php`
+- `tests/Unit/Models/EquipmentObserverTest.php`
 
-```
-Tests/Feature/
-├── EquipmentControllerTest.php
-├── UserControllerTest.php
-├── EquipmentHistoryControllerTest.php
-├── MaintenanceRecordControllerTest.php
-├── ProfileTest.php
-└── AuthenticationTest.php
+Run a specific test file:
 
-Tests/Unit/
-├── Actions/
-│   ├── LoanEquipmentActionTest.php
-│   ├── ReturnEquipmentActionTest.php
-│   ├── RepairEquipmentActionTest.php
-│   └── FinishRepairActionTest.php
-└── Models/
-    ├── EquipmentTest.php
-    ├── UserTest.php
-    └── MaintenanceRecordTest.php
-```
-
-### Example Test Cases
-
-**Equipment Loan Test:**
 ```bash
-php artisan test --filter="loan_equipment"
+php artisan test tests/Unit/Actions/LoanEquipmentActionTest.php
 ```
 
-**User Creation Test:**
+Run a specific test by filter:
+
 ```bash
-php artisan test --filter="create_user"
+php artisan test --filter=LoanEquipmentActionTest
 ```
-
-**Return Equipment Test:**
-```bash
-php artisan test --filter="return_equipment"
-```
-
----
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+Clear old Laravel cache files:
 
-#### 1. "No such column" Database Error
-
-**Problem:** Error about missing database columns
-
-**Solution:**
 ```bash
-php artisan migrate:fresh
-php artisan db:seed
+docker compose exec app php artisan optimize:clear
 ```
 
-#### 2. Equipment Not Loaning Properly
+Rebuild Docker images from scratch:
 
-**Problem:** Equipment status not changing when loaning
-
-**Ensure:**
-- Equipment status is "Available"
-- Equipment condition is not "Broken"
-- You have selected a user to loan to
-- Expiration date is in the future
-
-#### 3. Password Hash Error
-
-**Problem:** Cannot decrypt or verify password
-
-**Note:** Passwords are one-way hashed using bcrypt. Cannot be decrypted.
-
-**Solution:** Use password reset:
 ```bash
-php artisan tinker
-> $user = User::find(1);
-> $user->password = Hash::make('newpassword');
-> $user->save();
+docker compose down
+docker compose build --no-cache app nginx
+docker compose up -d --force-recreate
 ```
 
-#### 4. Equipment History Not Updating
+If GitHub Actions cannot find `Dockerfile`, check that the workflow uses the correct path for this repository layout:
 
-**Problem:** History not recording loans
-
-**Solution:**
-- Check that EquipmentHistory observer is loaded
-- Verify database observers are registered in `AppServiceProvider`
-- Run migration to ensure table structure is correct
-
-**Debug:**
-```bash
-php artisan tinker
-> Equipment::with('history')->first();
+```yaml
+context: ./BookKeepingPlatform
+file: ./BookKeepingPlatform/Dockerfile
 ```
 
-#### 5. Role Permissions Not Working
+If Kubernetes reports `ImagePullBackOff`, verify that the image names in `k8s/deployment.yaml`, `k8s/migration-job.yaml`, and `k8s/seed-job.yaml` match the GHCR images and that the packages are public or pull credentials are configured.
 
-**Problem:** Users accessing pages they shouldn't
+## Project Structure
 
-**Verify:**
-- Middleware is registered in `app/Http/Kernel.php`
-- Routes have correct middleware applied
-- User role is set correctly (Manager or Employee)
-
-```
-
-#### 8. Email Verification Not Working
-
-**Problem:** Cannot verify email
-
-**Solution:** Check mail configuration in `.env`:
-```
-MAIL_DRIVER=log  # For testing
-```
-
-In production, configure actual mail service (SendGrid, Mailgun, etc.)
-
----
-
-## Development
-
-### Project Structure
-
-```
+```text
 BookKeepingPlatform/
-├── app/
-│   ├── Actions/              # Business logic actions
-│   ├── Enums/               # Status, Condition, Category enums
-│   ├── Http/
-│   │   ├── Controllers/     # Request handlers
-│   │   ├── Middleware/      # Auth & permission middleware
-│   │   └── Requests/        # Form validation requests
-│   ├── Models/              # Database models
-│   └── Observers/           # Model event observers
-├── database/
-│   ├── factories/           # Model factories for testing
-│   ├── migrations/          # Database schema
-│   └── seeders/             # Database seeders
-├── resources/
-│   ├── css/                 # Stylesheets
-│   ├── js/                  # JavaScript files
-│   └── views/               # Blade templates
-├── routes/                  # Route definitions
-└── tests/                   # Test suites
+  app/
+    Actions/                 Business logic for loan, return, repair, and finish-repair workflows
+    Enums/                   Equipment category, condition, and status enums
+    Http/
+      Controllers/           Request handlers for equipment, users, profile, auth, history, and maintenance
+      Middleware/            Manager middleware
+      Requests/              Form request validation classes
+    Models/                  Eloquent models
+    Observers/               Model observers for automatic status/history updates
+    Providers/               Laravel service providers
+    View/                    Blade layout components
+  bootstrap/                 Laravel bootstrap files
+  config/                    Laravel configuration files
+  database/
+    factories/               Model factories used by tests and seeders
+    migrations/              PostgreSQL-compatible schema migrations
+    seeders/                 Sample users, equipment, loans, and maintenance records
+  docker/
+    nginx/                   Nginx container configuration
+    php/                     PHP-FPM entrypoint script
+  k8s/                       Kubernetes namespace, config, secrets, app, database, ingress, jobs
+  public/                    Public web root
+  resources/
+    css/                     Tailwind/CSS source
+    js/                      JavaScript source
+    views/                   Blade templates
+  routes/                    Web, console, and auth routes
+  storage/                   Runtime storage ignored by Git except placeholders
+  tests/
+    Feature/                 Feature/controller/auth tests
+    Unit/                    Unit/action/observer tests
+  .github/workflows/         GitHub Actions CI workflow
+  Dockerfile                 Multi-stage app and Nginx image build
+  docker-compose.yml         Local Nginx, Laravel, PostgreSQL stack
+  composer.json              PHP dependencies and scripts
+  package.json               Vite/Tailwind frontend dependencies
 ```
-```
 
----
+## Version
 
-## Security Considerations
+Current deployment-focused version: `1.0.0`
 
-- ✅ All passwords are hashed using bcrypt
-- ✅ CSRF tokens protect all forms
-- ✅ SQL injection prevented through Eloquent ORM
-- ✅ XSS protection through Blade templating
-- ✅ Role-based access control enforced
-- ✅ Email verification for new accounts
-- ✅ Secure session management
-
----
-
-## Support & Documentation
-
-### Laravel Documentation
-- [Laravel Official Docs](https://laravel.com/docs)
-- [Laravel Database](https://laravel.com/docs/eloquent)
-- [Laravel Validation](https://laravel.com/docs/validation)
-
-### Project Contacts
-For issues or questions about this project, refer to the project repository or documentation.
-
----
-
----
-
-## Changelog
-
-### Version 1.0 (Current)
-- Initial release
-- Equipment CRUD operations
-- Equipment loaning system
-- Maintenance record tracking
-- Equipment history tracking
-- User management with roles
-- Authentication with email verification
-- Role-based access control
-- Comprehensive test suite
-
----
-
-## Future Enhancements
-
----
-
-## Contributing
-
-To contribute to this project:
-
-1. Create a feature branch: `git checkout -b feature/new-feature`
-2. Commit your changes: `git commit -am 'Add new feature'`
-3. Push to the branch: `git push origin feature/new-feature`
-4. Submit a pull request
-
----
-
-**Last Updated:** April 2026
-**Version:** 1.0.0
-
+Last updated: June 2026
