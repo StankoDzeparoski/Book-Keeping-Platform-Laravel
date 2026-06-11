@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: bookkeeping-migrate
+  name: bookkeeping-seed
   namespace: bookkeeping-platform
 spec:
   backoffLimit: 3
@@ -9,13 +9,13 @@ spec:
     spec:
       restartPolicy: OnFailure
       containers:
-        - name: migrate
+        - name: seed
           image: ghcr.io/stankodzeparoski/book-keeping-platform-laravel/app:latest
           imagePullPolicy: Always
           args:
             - php
             - artisan
-            - migrate
+            - db:seed
             - --force
           envFrom:
             - configMapRef:
