@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: ghcr.io/your-github-username/your-repository/nginx:latest
+          image: ghcr.io/stankodzeparoski/book-keeping-platform-laravel/nginx:latest
           imagePullPolicy: Always
           env:
             - name: PHP_FPM_HOST
@@ -36,7 +36,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
         - name: app
-          image: ghcr.io/your-github-username/your-repository/app:latest
+          image: ghcr.io/stankodzeparoski/book-keeping-platform-laravel/app:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
