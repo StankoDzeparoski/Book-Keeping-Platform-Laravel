@@ -3,6 +3,7 @@ name: Build and Publish Container Images
 on:
   push:
     branches:
+      - KIIUprades
       - KIIUpgrades
   pull_request:
   workflow_dispatch:

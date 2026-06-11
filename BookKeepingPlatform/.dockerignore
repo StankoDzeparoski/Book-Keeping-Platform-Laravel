@@ -16,5 +16,4 @@ public/build
 public/hot
 .phpunit.result.cache
 .phpunit.cache
-Dockerfile
 docker-compose*.yml
