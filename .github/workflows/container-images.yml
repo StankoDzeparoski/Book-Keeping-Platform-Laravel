@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - KIIUprades
+      - KIIUpgrades
   pull_request:
   workflow_dispatch:
 
@@ -45,8 +46,8 @@ jobs:
       - name: Build and publish Laravel PHP-FPM image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./BookKeepingPlatform
+          file: ./BookKeepingPlatform/Dockerfile
           target: app
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
@@ -58,8 +59,8 @@ jobs:
       - name: Build and publish Nginx image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./BookKeepingPlatform
+          file: ./BookKeepingPlatform/Dockerfile
           target: nginx
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
