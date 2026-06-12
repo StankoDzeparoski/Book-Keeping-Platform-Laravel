@@ -14,6 +14,7 @@ data:
   LOG_CHANNEL: "stderr"
   DB_CONNECTION: "pgsql"
   DB_HOST: "bookkeeping-postgres"
+  DB_READ_HOST: "bookkeeping-postgres-replica"
   DB_PORT: "5432"
   SESSION_DRIVER: "database"
   CACHE_STORE: "database"

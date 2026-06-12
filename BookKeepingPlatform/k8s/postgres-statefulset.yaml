@@ -1,11 +1,89 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bookkeeping-postgres-replication-config
+  namespace: bookkeeping-platform
+data:
+  primary-init.sh: |
+    #!/bin/sh
+    set -eu
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+      DO \$\$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT FROM pg_catalog.pg_roles
+          WHERE rolname = '${POSTGRES_REPLICATION_USER}'
+        ) THEN
+          CREATE ROLE ${POSTGRES_REPLICATION_USER}
+            WITH REPLICATION LOGIN PASSWORD '${POSTGRES_REPLICATION_PASSWORD}';
+        END IF;
+      END
+      \$\$;
+    EOSQL
+
+    {
+      echo "host replication ${POSTGRES_REPLICATION_USER} 0.0.0.0/0 md5"
+      echo "host replication ${POSTGRES_REPLICATION_USER} ::/0 md5"
+    } >> "$PGDATA/pg_hba.conf"
+  replica-entrypoint.sh: |
+    #!/bin/sh
+    set -eu
+
+    : "${PGDATA:=/var/lib/postgresql/data/pgdata}"
+    : "${POSTGRES_PRIMARY_HOST:=bookkeeping-postgres}"
+    : "${POSTGRES_PRIMARY_PORT:=5432}"
+
+    mkdir -p "$PGDATA"
+    chown -R postgres:postgres "$(dirname "$PGDATA")"
+
+    if [ ! -s "$PGDATA/PG_VERSION" ]; then
+      rm -rf "$PGDATA"/*
+
+      until pg_isready -h "$POSTGRES_PRIMARY_HOST" -p "$POSTGRES_PRIMARY_PORT" -U "$POSTGRES_USER"; do
+        echo "Waiting for primary PostgreSQL at ${POSTGRES_PRIMARY_HOST}:${POSTGRES_PRIMARY_PORT}..."
+        sleep 2
+      done
+
+      export PGPASSWORD="$POSTGRES_REPLICATION_PASSWORD"
+      pg_basebackup \
+        -h "$POSTGRES_PRIMARY_HOST" \
+        -p "$POSTGRES_PRIMARY_PORT" \
+        -D "$PGDATA" \
+        -U "$POSTGRES_REPLICATION_USER" \
+        -Fp \
+        -Xs \
+        -P \
+        -R
+
+      chown -R postgres:postgres "$PGDATA"
+    fi
+
+    exec docker-entrypoint.sh postgres \
+      -c hot_standby=on \
+      -c listen_addresses='*'
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: bookkeeping-postgres
   namespace: bookkeeping-platform
 spec:
   selector:
-    app: bookkeeping-postgres
+    app: bookkeeping-postgres-primary
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookkeeping-postgres-replica
+  namespace: bookkeeping-platform
+spec:
+  selector:
+    app: bookkeeping-postgres-replica
   ports:
     - name: postgres
       port: 5432
@@ -14,27 +92,43 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: bookkeeping-postgres
+  name: bookkeeping-postgres-primary
   namespace: bookkeeping-platform
 spec:
   serviceName: bookkeeping-postgres
   replicas: 1
   selector:
     matchLabels:
-      app: bookkeeping-postgres
+      app: bookkeeping-postgres-primary
+      role: primary
   template:
     metadata:
       labels:
-        app: bookkeeping-postgres
+        app: bookkeeping-postgres-primary
+        role: primary
     spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
           imagePullPolicy: IfNotPresent
+          args:
+            - postgres
+            - -c
+            - wal_level=replica
+            - -c
+            - max_wal_senders=10
+            - -c
+            - max_replication_slots=10
+            - -c
+            - hot_standby=on
+            - -c
+            - listen_addresses=*
           ports:
             - name: postgres
               containerPort: 5432
           env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
@@ -50,6 +144,16 @@ spec:
                 secretKeyRef:
                   name: bookkeeping-app-secret
                   key: POSTGRES_PASSWORD
+            - name: POSTGRES_REPLICATION_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_REPLICATION_USER
+            - name: POSTGRES_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_REPLICATION_PASSWORD
           readinessProbe:
             exec:
               command:
@@ -62,9 +166,107 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+            - name: postgres-replication-scripts
+              mountPath: /docker-entrypoint-initdb.d/10-create-replication-user.sh
+              subPath: primary-init.sh
+      volumes:
+        - name: postgres-replication-scripts
+          configMap:
+            name: bookkeeping-postgres-replication-config
+            defaultMode: 0755
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bookkeeping-postgres-replica
+  namespace: bookkeeping-platform
+spec:
+  serviceName: bookkeeping-postgres-replica
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookkeeping-postgres-replica
+      role: replica
+  template:
+    metadata:
+      labels:
+        app: bookkeeping-postgres-replica
+        role: replica
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - /usr/local/bin/replica-entrypoint.sh
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_PRIMARY_HOST
+              value: bookkeeping-postgres
+            - name: POSTGRES_PRIMARY_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_REPLICATION_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_REPLICATION_USER
+            - name: POSTGRES_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bookkeeping-app-secret
+                  key: POSTGRES_REPLICATION_PASSWORD
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: postgres-replica-data
+              mountPath: /var/lib/postgresql/data
+            - name: postgres-replication-scripts
+              mountPath: /usr/local/bin/replica-entrypoint.sh
+              subPath: replica-entrypoint.sh
+      volumes:
+        - name: postgres-replication-scripts
+          configMap:
+            name: bookkeeping-postgres-replication-config
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-replica-data
       spec:
         accessModes:
           - ReadWriteOnce
